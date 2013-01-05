@@ -342,7 +342,6 @@ class CgiServer(cherrypy._cptools.Tool):
 
 
 
-
         # call PHP interpreter
         cmd_args = ["php5-cgi", os.path.join(PHPDIR, "phpinfo.php")]
         proc = subprocess.Popen(
