@@ -7,13 +7,12 @@ CherryPy CGI-Server - History
 Version 0.0.1
 =============
 
-- Erste Versuche mit Git
+- First trials with Git
 
-- Projekt in Google-Code eröffnet
+- Created Google-Code project
 
-- Erstimport ins Git Repository
+- First import into Git repository
 
-- Erste Strukturüberlegungen
+- First reflecting about the program structure
 
-- Git Helfer-Skripte hinzugefügt
-
+- Git helper scripts added
