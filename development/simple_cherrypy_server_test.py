@@ -18,7 +18,7 @@ import subprocess
 
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
-PHPDIRNAME = "php_dir"
+PHPDIRNAME = "php_files"
 PHPDIR = os.path.join(THISDIR, PHPDIRNAME)
 
 
