@@ -2,20 +2,15 @@
 #coding: utf-8
 
 """
-First tests with cherrypy tools
+First tests with cherrypy tools framework
 
 Created
     2013-01-05 by Gerold - http://halvar.at/
-Requirements
-    - CherryPy: http://cherrypy.org/
 """
 
 import os
 import cherrypy
 import subprocess
-
-#import CGIHTTPServer
-
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 PHPDIRNAME = "php_files"
@@ -57,11 +52,6 @@ class Root(object):
 
         else:
             raise cherrypy.NotFound()
-
-
-
-
-
 
     default.exposed = True
 
