@@ -104,9 +104,8 @@ class CgiServer(cherrypy._cptools.Tool):
 #            'rfile'
 
 
-# cherrypy.request.headers
+# cherrypy.request.headers (case insensitive)
 #        {
-#            'Remote-Addr': '127.0.0.1',
 #            'Accept-Language': 'de-de,de;q=0.8,en-us;q=0.5,en;q=0.3',
 #            'Accept-Encoding': 'gzip, deflate',
 #            'Connection': 'keep-alive',
@@ -115,7 +114,6 @@ class CgiServer(cherrypy._cptools.Tool):
 #            'Host': 'localhost:8080',
 #            'Referer': 'http://localhost:8080/'
 #        }
-
 
         # prepare body
         if cherrypy.request.method in cherrypy.request.methods_with_bodies:
@@ -128,20 +126,29 @@ class CgiServer(cherrypy._cptools.Tool):
         content_length = body_file.tell()
 
         # prepare environment for CGI callable
-        # infos about the environment variables:
+        # There I got infos about the environment variables:
         # http://de.selfhtml.org/servercgi/cgi/umgebungsvariablen.htm
+        # http://tools.ietf.org/html/rfc3875#page-12
 
         env = {
-            # CONTENT_LENGTH
-            # Enthält die Anzahl der Zeichen, die beim Aufruf des CGI-Scripts
-            # über die POST-Methode übergeben wurden. Wenn das CGI-Script
-            # beispielsweise beim Absenden eines HTML-Formulars aufgerufen
-            # wurde und dort als Übertragungsmethode POST angegeben ist,
-            # steht in dieser Umgebungsvariablen, wie viele Zeichen das Script
-            # von der Standardeingabe lesen muss, um die übermittelten
-            # Formulardaten vollständig einzulesen.
-            "CONTENT_LENGTH": str(content_length)
+            # REMOTE_ADDR
+            # Enthält die IP-Adresse des Server-Rechners, über den das CGI-Script
+            # aufgerufen wurde. Es muss sich hierbei nicht unbedingt um die
+            # IP-Adresse des aufrufenden Client-Rechners handeln - der Wert kann
+            # beispielsweise auch von einem Proxy-Server stammen.
+            "REMOTE_ADDR": cherrypy.request.headers.get("remote-addr", "127.0.0.1")
         }
+
+        # CONTENT_LENGTH
+        # Enthält die Anzahl der Zeichen, die beim Aufruf des CGI-Scripts
+        # über die POST-Methode übergeben wurden. Wenn das CGI-Script
+        # beispielsweise beim Absenden eines HTML-Formulars aufgerufen
+        # wurde und dort als Übertragungsmethode POST angegeben ist,
+        # steht in dieser Umgebungsvariablen, wie viele Zeichen das Script
+        # von der Standardeingabe lesen muss, um die übermittelten
+        # Formulardaten vollständig einzulesen.
+        if content_length:
+            env["CONTENT_LENGTH"] = str(content_length)
 
         # CONTENT_TYPE
         # Enthält beim Aufruf über die POST-Methode den Seite MIME-Typ
@@ -185,6 +192,9 @@ class CgiServer(cherrypy._cptools.Tool):
         # Ein CGI-Script kann aufgrund dieser Angabe beispielsweise entscheiden,
         # ob es eine deutschsprachige oder eine englischsprachige Antwort an
         # den Browser sendet.
+        if "accept-language" in cherrypy.request.headers:
+            env["HTTP_ACCEPT_LANGUAGE"] = cherrypy.request.headers["accept-language"]
+
 
         # HTTP_CONNECTION
         # Enthält Informationen über den Status der HTTP-Verbindung zwischen
@@ -213,47 +223,121 @@ class CgiServer(cherrypy._cptools.Tool):
         # wurde. Der Wert wird jedoch nicht von allen Web-Browsern korrekt
         # übermittelt, ist also nicht in jedem Fall verfügbar.
 
-        #    Anmerkung: Wenn Ihnen die englische Sprache geläufig ist, werden Sie feststellen, dass HTTP_REFERER eigentlich HTTP_REFERRER heißen müsste. Den Autoren der ersten Spezifikation von HTTP ist dieser Fehler unterlaufen, der sich aus historischen Gründen und aufgrund der Abwärtskompatibilität von HTTP bis heute hält.
+        # HTTP_USER_AGENT
+        # Enthält Produkt- und Versionsinformationen zum aufrufenden Web-Browser.
+        # Ein CGI-Script kann auf diese Weise ermitteln, welchen Browser ein
+        # Anwender verwendet.
 
-        #    HTTP_USER_AGENT 	Enthält Produkt- und Versionsinformationen zum aufrufenden Web-Browser. Ein CGI-Script kann auf diese Weise ermitteln, welchen Browser ein Anwender verwendet.
+        # PATH_INFO
+        # Wird einem CGI-Script eine Zeichenkette mit Daten übergeben,
+        # dann enthält PATH_INFO den Teil der Zeichenkette nach dem Namen
+        # des Scripts bis zum ersten ?. Wenn das Script beispielsweise die
+        # Adresse http://meine.seite.net/cgi-bin/test.pl hat, aber mit
+        # http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql?cat=Mozart
+        # aufgerufen wird, dann enthält diese Umgebungsvariable den Anteil
+        # /querys/musicbase.sql. Sie ist dazu gedacht, Dateinamen mit Pfadangabe
+        # als Übergabeparameter für Scripts zu ermöglichen.
 
-        #    PATH_INFO 	Wird einem CGI-Script eine Zeichenkette mit Daten übergeben, dann enthält PATH_INFO den Teil der Zeichenkette nach dem Namen des Scripts bis zum ersten ?. Wenn das Script beispielsweise die Adresse http://meine.seite.net/cgi-bin/test.pl hat, aber mit http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql?cat=Mozart aufgerufen wird, dann enthält diese Umgebungsvariable den Anteil /querys/musicbase.sql. Sie ist dazu gedacht, Dateinamen mit Pfadangabe als Übergabeparameter für Scripts zu ermöglichen.
+        # PATH_TRANSLATED
+        # Enthält wie PATH_INFO den Anteil des URI nach dem Scriptnamen bis
+        # zum ersten ?, jedoch mit dem Unterschied, dass nicht der Anteil
+        # selbst aus dem URI zurückgegeben wird, sondern der vom Webserver
+        # übersetzte Datenpfad dieses Anteils. Angenommen, das Script hat die
+        # Adresse http://meine.seite.net/cgi-bin/test.pl, wurde aber mit
+        # http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql aufgerufen.
+        # Dann könnte der zusätzliche Adressanteil /querys/musicbase.sql aus
+        # Sicht des Webservers beispielsweise in einen physischen Pfadnamen wie
+        # /usr/web/seite/querys/musicbase.sql aufgelöst werden. Diesen Pfadnamen
+        # würde PATH_TRANSLATED zurückgeben.
 
-        #    PATH_TRANSLATED 	Enthält wie PATH_INFO den Anteil des URI nach dem Scriptnamen bis zum ersten ?, jedoch mit dem Unterschied, dass nicht der Anteil selbst aus dem URI zurückgegeben wird, sondern der vom Webserver übersetzte Datenpfad dieses Anteils. Angenommen, das Script hat die Adresse http://meine.seite.net/cgi-bin/test.pl, wurde aber mit http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql aufgerufen. Dann könnte der zusätzliche Adressanteil /querys/musicbase.sql aus Sicht des Webservers beispielsweise in einen physischen Pfadnamen wie /usr/web/seite/querys/musicbase.sql aufgelöst werden. Diesen Pfadnamen würde PATH_TRANSLATED zurückgeben.
+        # QUERY_STRING
+        # Enthält eine Zeichenkette mit Daten, die dem Script im URI nach dem
+        # ersten ? übergeben wurden. Angenommen, das Script hat die Adresse
+        # http://meine.seite.net/cgi-bin/test.pl, wurde aber mit
+        # http://meine.seite.net/cgi-bin/test.pl?User=Stefan aufgerufen.
+        # Dann würde QUERY_STRING den Wert User=Stefan enthalten. Wenn ein
+        # Anwender ein HTML-Formular ausgefüllt hat, bei dessen Absenden das
+        # CGI-Script mit der GET-Methode aufgerufen wurde, dann stehen in
+        # dieser Umgebungsvariablen die ausgefüllten Formulardaten. Die Daten
+        # sind nach den Regeln des MIME-Typs application/x-www-form-urlencoded
+        # kodiert.
 
-        #    QUERY_STRING 	Enthält eine Zeichenkette mit Daten, die dem Script im URI nach dem ersten ? übergeben wurden. Angenommen, das Script hat die Adresse http://meine.seite.net/cgi-bin/test.pl, wurde aber mit http://meine.seite.net/cgi-bin/test.pl?User=Stefan aufgerufen. Dann würde QUERY_STRING den Wert User=Stefan enthalten. Wenn ein Anwender ein HTML-Formular ausgefüllt hat, bei dessen Absenden das CGI-Script mit der GET-Methode aufgerufen wurde, dann stehen in dieser Umgebungsvariablen die ausgefüllten Formulardaten. Die Daten sind nach den Regeln des MIME-Typs application/x-www-form-urlencoded kodiert.
 
-        #    REMOTE_ADDR 	Enthält die IP-Adresse des Server-Rechners, über den das CGI-Script aufgerufen wurde. Es muss sich hierbei nicht unbedingt um die IP-Adresse des aufrufenden Client-Rechners handeln - der Wert kann beispielsweise auch von einem Proxy-Server stammen.
+        # REMOTE_HOST
+        # Enthält den Hostnamen des Rechners, über den das CGI-Script aufgerufen
+        # wurde. Dieser Wert wird jedoch nur gesetzt, wenn der Webserver
+        # entsprechend konfiguriert und dazu in der Lage ist, der IP-Adresse
+        # den entsprechenden Hostnamen zuzuordnen. Es muss sich hierbei nicht
+        # unbedingt um die IP-Adresse des aufrufenden Client-Rechners handeln -
+        # der Wert kann beispielsweise auch von einem Proxy-Server stammen.
 
-        #    REMOTE_HOST 	Enthält den Hostnamen des Rechners, über den das CGI-Script aufgerufen wurde. Dieser Wert wird jedoch nur gesetzt, wenn der Webserver entsprechend konfiguriert und dazu in der Lage ist, der IP-Adresse den entsprechenden Hostnamen zuzuordnen. Es muss sich hierbei nicht unbedingt um die IP-Adresse des aufrufenden Client-Rechners handeln - der Wert kann beispielsweise auch von einem Proxy-Server stammen.
+        # REMOTE_IDENT
+        # Enthält Protokollinformationen, wenn auf dem Server das Protokoll
+        # ident für geschützte Zugriffe läuft.
 
-        #    REMOTE_IDENT 	Enthält Protokollinformationen, wenn auf dem Server das Protokoll ident für geschützte Zugriffe läuft.
+        # REMOTE_PORT
+        # Ermittelt, über welchen Port des Client-Rechners das CGI-Script
+        # aufgerufen wurde. Diese Zahl liegt gewöhnlich im Bereich ab 1024
+        # aufwärts und wird vom aufrufenden Web-Browser zufällig ausgewählt.
 
-        #    REMOTE_PORT 	Ermittelt, über welchen Port des Client-Rechners das CGI-Script aufgerufen wurde. Diese Zahl liegt gewöhnlich im Bereich ab 1024 aufwärts und wird vom aufrufenden Web-Browser zufällig ausgewählt.
+        # REMOTE_USER
+        # Enthält den Benutzernamen, mit dem sich der aufrufende Benutzer
+        # angemeldet hat, um das CGI-Script ausführen zu lassen. Wenn das
+        # Script beispielsweise htaccess-geschützt ist, muss sich der
+        # aufrufende Benutzer mit Benutzernamen und Passwort anmelden. Der
+        # dabei eingegebene Benutzername kann mit dieser Variable ermittelt
+        # werden.
 
-        #    REMOTE_USER 	Enthält den Benutzernamen, mit dem sich der aufrufende Benutzer angemeldet hat, um das CGI-Script ausführen zu lassen. Wenn das Script beispielsweise htaccess-geschützt ist, muss sich der aufrufende Benutzer mit Benutzernamen und Passwort anmelden. Der dabei eingegebene Benutzername kann mit dieser Variable ermittelt werden.
+        # REQUEST_METHOD
+        # Enthält die HTTP-Anfragemethode, mit der das CGI-Programm aufgerufen
+        # wurde. Beispielsweise GET oder POST. Ein CGI-Script kann diese
+        # Variable auslesen und danach entscheiden, wie es Formulardaten
+        # einlesen kann: entweder von der Standardeingabe (bei Methode POST)
+        # oder aus der Umgebungsvariablen QUERY_STRING (bei Methode GET).
 
-        #    REQUEST_METHOD 	Enthält die HTTP-Anfragemethode, mit der das CGI-Programm aufgerufen wurde. Beispielsweise GET oder POST. Ein CGI-Script kann diese Variable auslesen und danach entscheiden, wie es Formulardaten einlesen kann: entweder von der Standardeingabe (bei Methode POST) oder aus der Umgebungsvariablen QUERY_STRING (bei Methode GET).
+        # REQUEST_URI
+        # Enthält den HTTP-Pfad des Scripts inklusive der im Aufruf übergebenen
+        # Daten. Angenommen, das Script hat die Adresse
+        # http://meine.seite.net/cgi-bin/test.pl und wurde mit
+        # http://meine.seite.net/cgi-bin/test.pl?User=Stefan aufgerufen.
+        # Dann liefert REQUEST_URI den Wert /cgi-bin/test.pl?User=Stefan.
 
-        #    REQUEST_URI 	Enthält den HTTP-Pfad des Scripts inklusive der im Aufruf übergebenen Daten. Angenommen, das Script hat die Adresse http://meine.seite.net/cgi-bin/test.pl und wurde mit http://meine.seite.net/cgi-bin/test.pl?User=Stefan aufgerufen. Dann liefert REQUEST_URI den Wert /cgi-bin/test.pl?User=Stefan.
+        # SCRIPT_FILENAME
+        # Enthält den physischen Pfad des Scripts auf dem Server-Rechner,
+        # also z.B. /usr/web/data/cgi-bin/test.pl.
 
-        #    SCRIPT_FILENAME 	Enthält den physischen Pfad des Scripts auf dem Server-Rechner, also z.B. /usr/web/data/cgi-bin/test.pl.
+        # SCRIPT_NAME
+        # Enthält den HTTP-Pfad des Scripts. Angenommen, das Script hat die
+        # Adresse http://meine.seite.net/cgi-bin/test.pl. Dann liefert
+        # SCRIPT_NAME den Wert /cgi-bin/test.pl.
 
-        #    SCRIPT_NAME 	Enthält den HTTP-Pfad des Scripts. Angenommen, das Script hat die Adresse http://meine.seite.net/cgi-bin/test.pl. Dann liefert SCRIPT_NAME den Wert /cgi-bin/test.pl.
+        # SERVER_ADDR
+        # Enthält die IP-Adresse des Server-Rechners.
 
-        #    SERVER_ADDR 	Enthält die IP-Adresse des Server-Rechners.
+        # SERVER_ADMIN
+        # Enthält Namen/E-Mail-Adresse des in der Webserver-Konfiguration
+        # eingetragenen Server-Administrators.
 
-        #    SERVER_ADMIN 	Enthält Namen/E-Mail-Adresse des in der Webserver-Konfiguration eingetragenen Server-Administrators.
+        # SERVER_NAME
+        # Enthält den Namen des Server-Rechners, auf dem das CGI-Script läuft.
+        # Normalerweise ist dies der eingetragene Hostname des Rechners.
 
-        #    SERVER_NAME 	Enthält den Namen des Server-Rechners, auf dem das CGI-Script läuft. Normalerweise ist dies der eingetragene Hostname des Rechners.
+        # SERVER_PORT
+        # Enthält die Portnummer, die für den Webserver eingerichtet wurde.
+        # Normalerweise ist dies für Webserver die Nummer 80.
 
-        #    SERVER_PORT 	Enthält die Portnummer, die für den Webserver eingerichtet wurde. Normalerweise ist dies für Webserver die Nummer 80.
+        # SERVER_PROTOCOL
+        # Enthält die Version des HTTP-Protokolls, das der installierte
+        # Webserver unterstützt, z.B. HTTP/1.1, wenn die gegenwärtig übliche
+        # Version 1.1 des HTTP-Protokolls unterstützt wird.
 
-        #    SERVER_PROTOCOL 	Enthält die Version des HTTP-Protokolls, das der installierte Webserver unterstützt, z.B. HTTP/1.1, wenn die gegenwärtig übliche Version 1.1 des HTTP-Protokolls unterstützt wird.
+        # SERVER_SIGNATURE
+        # Enthält eine erweiterte Selbstauskunft des Servers,
+        # z.B. Apache/1.3.31 Server at localhost Port 80.
 
-        #    SERVER_SIGNATURE 	Enthält eine erweiterte Selbstauskunft des Servers, z.B. Apache/1.3.31 Server at localhost Port 80.
-
-        #    SERVER_SOFTWARE 	Enthält den Namen und die Versionsnummer der Webserver-Software auf dem Server-Rechner.
+        # SERVER_SOFTWARE
+        # Enthält den Namen und die Versionsnummer der Webserver-Software auf
+        # dem Server-Rechner.
 
 
 
