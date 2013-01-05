@@ -15,3 +15,5 @@ Version 0.0.1
 
 - Erste Strukturüberlegungen
 
+- Git Helfer-Skripte hinzugefügt
+
