@@ -11,6 +11,7 @@ Created
 import os
 import cherrypy
 import subprocess
+from cherrypy.wsgiserver import wsgiserver2
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 PHPDIRNAME = "php_files"
@@ -40,47 +41,129 @@ class CgiServer(cherrypy._cptools.Tool):
         """
         """
 
-        print
-        print "CgiServer callable ..."
-        print
+        cherrypy.log(" ")
+        cherrypy.log(repr(dir(cherrypy.request)))
+        cherrypy.log(" ")
 
+# cherrypy.request
+#        [
+#            '__attrname__',
+#            '__bool__',
+#            '__class__',
+#            '__contains__'
+#            '__delattr__'
+#            '__delitem__'
+#            '__dict__'
+#            '__doc__'
+#            '__format__'
+#            '__getattr__'
+#            '__getattribute__'
+#            '__getitem__'
+#            '__hash__'
+#            '__init__'
+#            '__len__'
+#            '__module__'
+#            '__new__'
+#            '__nonzero__'
+#            '__reduce__'
+#            '__reduce_ex__'
+#            '__repr__'
+#            '__setattr__'
+#            '__setitem__'
+#            '__sizeof__'
+#            '__slots__'
+#            '__str__'
+#            '__subclasshook__'
+#            '__weakref__'
+#            '_get_body_params'
+#            '_get_dict'
+#            'app'
+#            'base'
+#            'body'
+#            'body_params'
+#            'close'
+#            'closed'
+#            'config'
+#            'cookie'
+#            'dispatch'
+#            'error_page'
+#            'error_response'
+#            'get_resource'
+#            'handle_error'
+#            'handler'
+#            'header_list'
+#            'headers'
+#            'hooks'
+#            'is_index'
+#            'local'
+#            'login'
+#            'method'
+#            'methods_with_bodies'
+#            'multiprocess'
+#            'multithread'
+#            'namespaces'
+#            'params'
+#            'path_info'
+#            'prev'
+#            'process_headers'
+#            'process_query_string'
+#            'process_request_body'
+#            'protocol'
+#            'query_string'
+#            'query_string_encoding'
+#            'remote'
+#            'request_line'
+#            'respond'
+#            'rfile'
+#            'run'
+#            'scheme'
+#            'script_name'
+#            'server_protocol'
+#            'show_mismatched_params'
+#            'show_tracebacks'
+#            'stage'
+#            'throw_errors'
+#            'throws'
+#            'toolmaps'
+#            'wsgi_environ'
+#        ]
+
+# cherrypy.request.headers
+#        {
+#            'Remote-Addr': '127.0.0.1',
+#            'Accept-Language': 'de-de,de;q=0.8,en-us;q=0.5,en;q=0.3',
+#            'Accept-Encoding': 'gzip, deflate',
+#            'Connection': 'keep-alive',
+#            'Accept': 'image/png,image/*;q=0.8,*/*;q=0.5',
+#            'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0',
+#            'Host': 'localhost:8080',
+#            'Referer': 'http://localhost:8080/'
+#        }
+
+
+        # ToDo: Prepare environment for CGI callable
+
+
+        # Call PHP interpreter
         cmd_args = ["php5-cgi", os.path.join(PHPDIR, "phpinfo.php")]
-
         proc = subprocess.Popen(
             cmd_args,
             executable = "php5-cgi",
             stdout = subprocess.PIPE,
             stderr = subprocess.STDOUT,
+            env = {}
         )
 
-        print
-        print "PHP called"
-        print
+        # Get headers
+        cherrypy.serving.response.headers = wsgiserver2.read_headers(
+            proc.stdout, cherrypy.serving.response.headers
+        )
 
-        header_processed = False
-        header_list = []
-        for line in proc.stdout:
-            if not line.rstrip():
-                header_processed = True
-            if header_processed:
-                print "Line:", line
-                cherrypy.serving.response.body.append(line)
-            else:
-                header_list.append(line.rstrip())
+        # Get body
+        cherrypy.serving.response.body = proc.stdout
 
-        print
-        print "PHP return values --> body"
-        print
-
-        # return header_list
-        cherrypy.serving.response.header_list = header_list
-
-        # no more request handler needed
+        # Finished: no more request handler needed
         cherrypy.serving.request.handler = None
-
-
-
-
 
 cherrypy.tools.cgiserver = CgiServer()
 
