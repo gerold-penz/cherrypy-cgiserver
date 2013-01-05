@@ -1,5 +1,4 @@
 .idea
-*.pyc
 *.o
 *.lo
 *.la
