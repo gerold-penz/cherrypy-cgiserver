@@ -4,6 +4,17 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.1.3
+=============
+
+2013-01-06
+
+- Code from development testdir merged to *cpcgiserver.__init__*
+
+- Extended PHP page example created. Example with image (staticdir tool)
+
+
+=============
 Version 0.1.2
 =============
 
@@ -13,7 +24,7 @@ Version 0.1.2
 
 - Environment variables filled
 
-- Full functional Example successful tested
+- Full functional development example successfuly tested
 
 
 =============
