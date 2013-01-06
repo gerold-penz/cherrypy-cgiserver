@@ -15,6 +15,8 @@ Version 0.2.0
 
 - Handles incorrect header lines, too
 
+- Tests with buffered temporary files
+
 
 =============
 Version 0.1.2

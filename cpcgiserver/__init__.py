@@ -12,6 +12,7 @@ Requirements
 import os
 import cherrypy
 import subprocess
+import tempfile
 from cStringIO import StringIO
 from cherrypy.wsgiserver import wsgiserver2
 from cherrypy._cpcompat import unquote
@@ -134,11 +135,6 @@ class CgiServer(cherrypy._cptools.Tool):
 #        cherrypy.serving.request.handler = None
 #        return
 #        # TEST ----------
-
-
-
-
-
 
 
 
@@ -375,9 +371,12 @@ class CgiServer(cherrypy._cptools.Tool):
         # aufrufende Benutzer mit Benutzernamen und Passwort anmelden. Der
         # dabei eingegebene Benutzername kann mit dieser Variable ermittelt
         # werden.
-        if hasattr(request, "login"):
-            if request.login and not request.login.lower() == "none":
-                env["REMOTE_USER"] = request.login
+
+        # Test it before use it
+#        if hasattr(request, "login"):
+#            if request.login and not request.login.lower() == "none":
+#                env["REMOTE_USER"] = request.login
+
 
         # REQUEST_METHOD
         # Enthält die HTTP-Anfragemethode, mit der das CGI-Programm aufgerufen
@@ -435,6 +434,39 @@ class CgiServer(cherrypy._cptools.Tool):
         # Get response (header and body lines)
         response = StringIO(proc.stdout.read())
 
+
+        # ToDo: Response in eine temporäre Datei schreiben
+
+        # tempfile.SpooledTemporaryFile([max_size=0[, mode='w+b'[, bufsize=-1[, suffix=''[, prefix='tmp'[, dir=None]]]]]])
+        #
+        # This function operates exactly as TemporaryFile() does, except that data is
+        # spooled in memory until the file size exceeds max_size, or until the file’s
+        # fileno() method is called, at which point the contents are written to disk
+        # and operation proceeds as with TemporaryFile(). Also, it’s truncate method
+        # does not accept a size argument.
+        #
+        # The resulting file has one additional method, rollover(), which causes the
+        # file to roll over to an on-disk file regardless of its size.
+        #
+        # The returned object is a file-like object whose _file attribute is either
+        # a StringIO object or a true file object, depending on whether rollover()
+        # has been called. This file-like object can be used in a with statement,
+        # just like a normal file.
+        #
+        # New in version 2.6.
+
+        ## Get response (header and body lines) into spooled temporary file
+        #response = tempfile.SpooledTemporaryFile(
+        #    max_size = response_file_max_size_in_memory,
+        #    mode = "w+b",
+        #    suffix = "cpcgiserver",
+        #    prefix = "tmp",
+        #    dir = None
+        #)
+        #response.write(proc.stdout.read())
+
+
+
         # Get header lines
         try:
             cherrypy.serving.response.headers = wsgiserver2.read_headers(
@@ -450,10 +482,6 @@ class CgiServer(cherrypy._cptools.Tool):
         cherrypy.serving.request.handler = None
 
 cherrypy.tools.cgiserver = CgiServer()
-
-
-
-
 
 
 
