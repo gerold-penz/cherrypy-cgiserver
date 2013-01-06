@@ -4,7 +4,7 @@ CherryPy CGI-Server - History
 
 
 =============
-Version 0.1.3
+Version 0.2.0
 =============
 
 2013-01-06
@@ -12,6 +12,8 @@ Version 0.1.3
 - Code from development testdir merged to *cpcgiserver.__init__*
 
 - Extended PHP page example created. Example with image (staticdir tool)
+
+- Handles incorrect header lines, too
 
 
 =============

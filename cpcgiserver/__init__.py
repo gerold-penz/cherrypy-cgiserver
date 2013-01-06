@@ -21,14 +21,12 @@ THISDIR = os.path.dirname(os.path.abspath(__file__))
 
 class CgiServer(cherrypy._cptools.Tool):
     """
-    Erster Test mit einer Tool-Klasse
+    CgiServer Tool
     """
 
     def __init__(self):
         """
-        Initialisiert die Tool-Klasse
-
-        Beim Initialisieren werden Hook-Punkt, Name, Priorität, usw. festgelegt.
+        Initialize tool
         """
 
         cherrypy._cptools.Tool.__init__(
@@ -42,7 +40,7 @@ class CgiServer(cherrypy._cptools.Tool):
 
     def callable(self, base_url, dir, root="", handlers = None, server_admin = None):
         """
-        Verwandelt CherryPy in einen CGI-Server
+        Adds an embedded CGI server to CherryPy
 
         :param base_url: Absolute HTTP-URL of the CGI base directory.
             z.B.: "/cgi"
@@ -434,18 +432,30 @@ class CgiServer(cherrypy._cptools.Tool):
         )
         proc.stdin.write(body_file.read())
 
+        # Get response (header and body lines)
+        response = StringIO(proc.stdout.read())
 
-        # ToDo: get headers
+        # Get header lines
+        try:
+            cherrypy.serving.response.headers = wsgiserver2.read_headers(
+                response, cherrypy.serving.response.headers
+            )
+        except ValueError:
+            response.seek(0)
 
-        # get headers
-        cherrypy.serving.response.headers = wsgiserver2.read_headers(
-            proc.stdout, cherrypy.serving.response.headers
-        )
-
-        # get body
-        cherrypy.serving.response.body = proc.stdout
+        # Get body
+        cherrypy.serving.response.body = response
 
         # finished: no more request handler needed
         cherrypy.serving.request.handler = None
 
 cherrypy.tools.cgiserver = CgiServer()
+
+
+
+
+
+
+
+
+

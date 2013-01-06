@@ -6,9 +6,9 @@ import sys
 import cherrypy
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
-# Add parentdir to path for testing cpcgiserver
-PARENTDIR = os.path.abspath(os.path.join(THISDIR, os.path.pardir))
-sys.path.insert(0, PARENTDIR)
+# Add app dir to path for testing cpcgiserver
+APPDDIR = os.path.abspath(os.path.join(THISDIR, os.path.pardir, os.path.pardir))
+sys.path.insert(0, APPDDIR)
 
 import cpcgiserver
 
