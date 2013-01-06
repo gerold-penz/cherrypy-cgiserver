@@ -11,8 +11,10 @@ Created
 import os
 import cherrypy
 import subprocess
+import urlparse
 from cStringIO import StringIO
 from cherrypy.wsgiserver import wsgiserver2
+from cherrypy._cpcompat import unquote
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 PHPDIRNAME = "php_files"
@@ -77,102 +79,109 @@ class CgiServer(cherrypy._cptools.Tool):
         )
 
 
-    def callable(self, handlers):
+    def callable(self, base_url, dir, root="", handlers = None):
         """
+        Verwandelt CherryPy in einen CGI-Server
 
-        :param cgi_handlers: Dictionary mit den Dateiendungen und den
+        :param base_url: Absolute HTTP-URL of the CGI base directory.
+            z.B.: "/cgi"
+
+        :param dir: Absoluter oder relativer Pfad zum Ordner mit den CGI-Dateien.
+            Wird der Pfad relativ angegeben, dann wird er an *root* angehängt.
+            Gleiches Verhalten wie beim Staticdir-Tool.
+
+        :param root: An diesen Pfad wird *dir* angehängt, falls *dir* nicht
+            absolut übergeben wurde.
+
+        :param handlers: Dictionary mit den Dateiendungen und den
             zugehörigen Interpretern. z.B.::
 
-                {"php": "/usr/bin/php-cgi", "py": "/usr/bin/python"}
+                {".php": "/usr/bin/php-cgi", ".py": "/usr/bin/python"}
+
+            Es werden nur Dateien ausgeführt, denen ein Handler zugewiesen
+            wurde. Wird die Dateiendung nicht im Dictionary gefunden, wird
+            das Tool beendet, so dass die Abarbeitung des Requests z.B. von
+            Staticdir ausgeliefert werden kann.
         """
 
-# cherrypy.request
-#        [
-#            '_get_body_params'
-#            '_get_dict'
-#            'app'
-#            'base'
-#            'body'
-#            'body_params'
-#            'close'
-#            'closed'
-#            'config'
-#            'cookie'
-#            'dispatch'
-#            'error_page'
-#            'error_response'
-#            'get_resource'
-#            'handle_error'
-#            'handler'
-#            'header_list'
-#            'headers'
-#            'hooks'
-#            'is_index'
-#            'local'
-#            'login'
-#            'method'
-#            'methods_with_bodies'
-#            'multiprocess'
-#            'multithread'
-#            'namespaces'
-#            'params'
-#            'path_info'
-#            'prev'
-#            'process_headers'
-#            'process_query_string'
-#            'process_request_body'
-#            'protocol'
-#            'query_string'
-#            'query_string_encoding'
-#            'remote'
-#            'request_line'
-#            'respond'
-#            'rfile'
-#            'run'
-#            'scheme'
-#            'script_name'
-#            'server_protocol'
-#            'show_mismatched_params'
-#            'show_tracebacks'
-#            'stage'
-#            'throw_errors'
-#            'throws'
-#            'toolmaps'
-#            'wsgi_environ'
-#        ]
+        # short names for request and headers
+        request = cherrypy.request
+        headers = request.headers
 
-#            'params'
-#            'path_info'
-#            'query_string'
-#            'query_string_encoding'
-#            'rfile'
+        # Allow the use of '~' to refer to a user's home directory.
+        # (copied from *cherrypy.lib.static*)
+        dir = os.path.expanduser(dir)
 
+        # If dir is relative, make absolute using "root".
+        # (copied from *cherrypy.lib.static*)
+        if not os.path.isabs(dir):
+            if not root:
+                msg = "Static dir requires an absolute dir (or root)."
+                cherrypy.log(msg, 'TOOLS.CGISERVER')
+                raise ValueError(msg)
+            dir = os.path.join(root, dir)
 
-# cherrypy.request.headers (case insensitive)
-#        {
-#            'Accept-Language': 'de-de,de;q=0.8,en-us;q=0.5,en;q=0.3',
-#            'Accept-Encoding': 'gzip, deflate',
-#            'Connection': 'keep-alive',
-#            'Accept': 'image/png,image/*;q=0.8,*/*;q=0.5',
-#            'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:17.0) Gecko/20100101 Firefox/17.0',
-#            'Host': 'localhost:8080',
-#            'Referer': 'http://localhost:8080/'
-#        }
+        # Determine where we are in the object tree relative to 'base_url'
+        # (copied from *cherrypy.lib.static*)
+        if base_url == "":
+            base_url = "/"
+        base_url = base_url.rstrip(r"\/")
+        branch = request.path_info[len(base_url) + 1:]
+        branch = unquote(branch.lstrip(r"\/"))
 
+        # Dateiname des Skriptes ermitteln (Es muss auf angehängte Pfade geachtet werden.)
+        # Dabei wird auch der an die URL des Skriptes angehängte Pfad ermittelt
+        branch_items = branch.split("/")
+        script_filename = None
+        path_info_start = None
+        path_info = ""
+        for i in range(len(branch_items), 0, -1):
+            _file_path = os.path.join(dir, *branch_items[:i])
+            if os.path.isfile(_file_path):
+                script_filename = _file_path
+                path_info_start = i
+                break
+        if not path_info_start is None and branch_items[path_info_start:]:
+            path_info = "/" + "/".join(branch_items[path_info_start:])
+        if not script_filename:
+            return
 
+        # URL des Skriptes ermitteln
+        script_name = script_filename[len(dir):]
 
-        # ToDo: Dateiname ermitteln
+        # There's a chance that the branch pulled from the URL might
+        # have ".." or similar uplevel attacks in it. Check that the final
+        # filename is a child of dir.
+        # (copied from *cherrypy.lib.static*)
+        if not os.path.normpath(script_filename).startswith(os.path.normpath(dir)):
+            raise cherrypy.HTTPError(403) # Forbidden
 
-        # ToDo: Wenn Dateiendung unbekannt, dann Funktion beenden, damit ein
+        # Wenn Dateiendung unbekannt, dann Funktion beenden, damit ein
         # evt. eingestelltes Staticdir-Tool die Datei ausliefern kann
+        ext = os.path.splitext(script_filename)
+        if ext[1] not in handlers:
+            return
+
+
+
+
+#        # TEST ---------
+#        cherrypy.serving.response.body = [show_request()]
+#        cherrypy.serving.request.handler = None
+#        return
+#        # TEST ----------
+
+
+
+
 
 
 
 
         # prepare body
-        if cherrypy.request.method in cherrypy.request.methods_with_bodies:
-            body_file = cherrypy.request.rfile
-            content_length = cherrypy.request.headers.get("content-length", 0)
+        if request.method in request.methods_with_bodies:
+            body_file = request.rfile
+            content_length = headers.get("content-length", 0)
         else:
             body_file = StringIO()
             content_length = None
@@ -188,7 +197,7 @@ class CgiServer(cherrypy._cptools.Tool):
             # aufgerufen wurde. Es muss sich hierbei nicht unbedingt um die
             # IP-Adresse des aufrufenden Client-Rechners handeln - der Wert kann
             # beispielsweise auch von einem Proxy-Server stammen.
-            "REMOTE_ADDR": cherrypy.request.headers.get("remote-addr", "127.0.0.1")
+            "REMOTE_ADDR": headers.get("remote-addr", "127.0.0.1")
         }
 
         # CONTENT_LENGTH
@@ -210,12 +219,15 @@ class CgiServer(cherrypy._cptools.Tool):
         # Umgebungsvariablen der für HTML-Formulare typische MIME-Typ
         # application/x-www-form-urlencoded (zu diesem MIME-Typ siehe auch
         # Seite Datenstrom bei Übertragung von Formulardaten).
+        if "content-type" in headers:
+            env["CONTENT_TYPE"] = headers["CONTENT_TYPE"]
 
         # DOCUMENT_ROOT
         # Enthält den physischen Pfad des Wurzelverzeichnisses für die Ablage
         # von Dateien, die im Webserver aufrufbar sind. Ein CGI-Script kann aus
         # dieser Angabe beispielsweise absolute Pfadnamen zum Öffnen von Dateien
         # errechnen.
+        env["DOCUMENT_ROOT"] = dir
 
         # GATEWAY_INTERFACE
         # Enthält die Version der CGI-Schnittstelle, die von dem installierten
@@ -226,10 +238,17 @@ class CgiServer(cherrypy._cptools.Tool):
         # HTTP_ACCEPT
         # Enthält die Liste der MIME-Typen, die der aufrufende Web-Browser
         # akzeptiert. Die Angabe */* bedeutet: der Web-Browser akzeptiert alles.
+        if "accept" in headers:
+            env["HTTP_ACCEPT"] = headers["accept"]
+        elif hasattr(request, "wsgi_environ"):
+            if "HTTP_ACCEPT" in request.wsgi_environ:
+                env["HTTP_ACCEPT"] = request.wsgi_environ["HTTP_ACCEPT"]
 
         # HTTP_ACCEPT_CHARSET
         # Enthält die Liste der Zeichenkodierungen, die der aufrufende Web-Browser
         # akzeptiert, beispielsweise iso-8859-1, utf-8, utf-16, *;q=0.1.
+        if "accept-charset" in headers:
+            env["HTTP_ACCEPT_CHARSET"] = headers["accept-charset"]
 
         # HTTP_ACCEPT_ENCODING
         # Enthält eine Liste der Kodierungsmethoden, die der aufrufende Browser
@@ -237,6 +256,11 @@ class CgiServer(cherrypy._cptools.Tool):
         # Kodierungstyp gzip, was bedeutet, dass der Browser auch Dateien
         # empfangen kann, die nach dem GNU-Zip-Algorithmus komprimiert an ihn
         # übertragen werden.
+        if "accept-encoding" in headers:
+            env["HTTP_ACCEPT_ENCODING"] = headers["accept-encoding"]
+        elif hasattr(request, "wsgi_environ"):
+            if "HTTP_ACCEPT_ENCODING" in request.wsgi_environ:
+                env["HTTP_ACCEPT_ENCODING"] = request.wsgi_environ["HTTP_ACCEPT_ENCODING"]
 
         # HTTP_ACCEPT_LANGUAGE
         # Enthält, welche Landessprache der aufrufende Browser bei seiner
@@ -245,45 +269,48 @@ class CgiServer(cherrypy._cptools.Tool):
         # Ein CGI-Script kann aufgrund dieser Angabe beispielsweise entscheiden,
         # ob es eine deutschsprachige oder eine englischsprachige Antwort an
         # den Browser sendet.
-        if "accept-language" in cherrypy.request.headers:
-            env["HTTP_ACCEPT_LANGUAGE"] = cherrypy.request.headers["accept-language"]
+        if "accept-language" in headers:
+            env["HTTP_ACCEPT_LANGUAGE"] = headers["accept-language"]
 
         # HTTP_CONNECTION
         # Enthält Informationen über den Status der HTTP-Verbindung zwischen
         # Server und aufrufendem Browser. Der Wert Keep-Alive bedeutet, der
         # Browser wartet auf Antwort.
+        if "connection" in headers:
+            env["HTTP_CONNECTION"] = headers["connection"]
+        elif hasattr(request, "wsgi_environ"):
+            if "HTTP_CONNECTION" in request.wsgi_environ:
+                env["HTTP_CONNECTION"] = request.wsgi_environ["HTTP_CONNECTION"]
 
         # HTTP_COOKIE
         # Enthält Namen und Wert von Cookies, sofern solche vom aufrufenden
-        # Browser gesendet werden. Mit der Perl-Anweisung:
-        #   my @cookies = split(/[;,]\s*/,$ENV{'HTTP_COOKIE'});
-        # können Sie alle gesetzten Cookies ermitteln. Jedes Element
-        # des Seite Arrays namens @cookies enthält dann jeweils einen Cookie,
-        # bestehend aus einem Namen und einem Wert, die durch ein
-        # Gleichheitszeichen = getrennt sind. Der Wert eines Cookies ist im
-        # Format des Seite MIME-Typs application/x-www-form-urlencoded
-        # gespeichert (zu diesem MIME-Typ siehe auch Seite Datenstrom bei
-        # Übertragung von Formulardaten).
+        # Browser gesendet werden.
+        if request.cookie:
+            env["HTTP_COOKIE"] = request.cookie
 
         # HTTP_HOST
         # Enthält den Domain-Namen oder die IP-Adresse aus der Adresszeile des
         # aufrufenden Browsers. Für ein CGI-Script kann diese Angabe wichtig sein,
         # falls es mehrere Server bedienen muss.
-        if "host" in cherrypy.request.headers:
-            env["HTTP_HOST"] = cherrypy.request.headers["host"]
-        elif hasattr(cherrypy.request, "wsgi_environ"):
-            if "HTTP_HOST" in cherrypy.request.wsgi_environ:
-                env["HTTP_HOST"] = cherrypy.request.wsgi_environ["HTTP_HOST"]
+        if "host" in headers:
+            env["HTTP_HOST"] = headers["host"]
+        elif hasattr(request, "wsgi_environ"):
+            if "HTTP_HOST" in request.wsgi_environ:
+                env["HTTP_HOST"] = request.wsgi_environ["HTTP_HOST"]
 
         # HTTP_REFERER
         # Enthält den URI der Web-Seite, von der aus das CGI-Script aufgerufen
         # wurde. Der Wert wird jedoch nicht von allen Web-Browsern korrekt
         # übermittelt, ist also nicht in jedem Fall verfügbar.
+        if "referer" in headers:
+            env["HTTP_REFERER"] = headers["referer"]
 
         # HTTP_USER_AGENT
         # Enthält Produkt- und Versionsinformationen zum aufrufenden Web-Browser.
         # Ein CGI-Script kann auf diese Weise ermitteln, welchen Browser ein
         # Anwender verwendet.
+        if "user-agent" in headers:
+            env["HTTP_USER_AGENT"] = headers["user-agent"]
 
         # PATH_INFO
         # Wird einem CGI-Script eine Zeichenkette mit Daten übergeben,
@@ -294,6 +321,12 @@ class CgiServer(cherrypy._cptools.Tool):
         # aufgerufen wird, dann enthält diese Umgebungsvariable den Anteil
         # /querys/musicbase.sql. Sie ist dazu gedacht, Dateinamen mit Pfadangabe
         # als Übergabeparameter für Scripts zu ermöglichen.
+        env["PATH_INFO"] = path_info
+
+        # path_info: u'/cgi/dateiname.php/arbeitsdir/arbeitsdatei.sql'
+        # es sollte "/arbeitsdir/arbeitsdatei.sql" zurück gegeben werden
+
+
 
         # PATH_TRANSLATED
         # Enthält wie PATH_INFO den Anteil des URI nach dem Scriptnamen bis
@@ -350,8 +383,8 @@ class CgiServer(cherrypy._cptools.Tool):
         # Variable auslesen und danach entscheiden, wie es Formulardaten
         # einlesen kann: entweder von der Standardeingabe (bei Methode POST)
         # oder aus der Umgebungsvariablen QUERY_STRING (bei Methode GET).
-        if hasattr(cherrypy.request, "method"):
-            env["REQUEST_METHOD"] = cherrypy.request.method
+        if hasattr(request, "method"):
+            env["REQUEST_METHOD"] = request.method
 
         # REQUEST_URI
         # Enthält den HTTP-Pfad des Scripts inklusive der im Aufruf übergebenen
@@ -363,20 +396,13 @@ class CgiServer(cherrypy._cptools.Tool):
         # SCRIPT_FILENAME
         # Enthält den physischen Pfad des Scripts auf dem Server-Rechner,
         # also z.B. /usr/web/data/cgi-bin/test.pl.
-
-        # ToDo: ändern
-        env["SCRIPT_FILENAME"] = os.path.join(PHPDIR, "phpinfo.php")
-
+        env["SCRIPT_FILENAME"] = script_filename
 
         # SCRIPT_NAME
         # Enthält den HTTP-Pfad des Scripts. Angenommen, das Script hat die
         # Adresse http://meine.seite.net/cgi-bin/test.pl. Dann liefert
         # SCRIPT_NAME den Wert /cgi-bin/test.pl.
-#        if hasattr(cherrypy.request, "script_name"):
-#            env["SCRIPT_NAME"] = cherrypy.request.script_name
-
-        # ToDo: ändern
-        env["SCRIPT_NAME"] = "/cgi/phpinfo.php"
+        env["SCRIPT_NAME"] = script_name
 
         # SERVER_ADDR
         # Enthält die IP-Adresse des Server-Rechners.
@@ -397,8 +423,8 @@ class CgiServer(cherrypy._cptools.Tool):
         # Enthält die Version des HTTP-Protokolls, das der installierte
         # Webserver unterstützt, z.B. HTTP/1.1, wenn die gegenwärtig übliche
         # Version 1.1 des HTTP-Protokolls unterstützt wird.
-        if hasattr(cherrypy.request, "server_protocol"):
-            env["SERVER_PROTOCOL"] = cherrypy.request.server_protocol
+        if hasattr(request, "server_protocol"):
+            env["SERVER_PROTOCOL"] = request.server_protocol
 
         # SERVER_SIGNATURE
         # Enthält eine erweiterte Selbstauskunft des Servers,
@@ -408,9 +434,9 @@ class CgiServer(cherrypy._cptools.Tool):
         # Enthält den Namen und die Versionsnummer der Webserver-Software auf
         # dem Server-Rechner.
         #
-        if hasattr(cherrypy.request, "wsgi_environ"):
-            if "SERVER_SOFTWARE" in cherrypy.request.wsgi_environ:
-                env["SERVER_SOFTWARE"] = cherrypy.request.wsgi_environ["SERVER_SOFTWARE"]
+        if hasattr(request, "wsgi_environ"):
+            if "SERVER_SOFTWARE" in request.wsgi_environ:
+                env["SERVER_SOFTWARE"] = request.wsgi_environ["SERVER_SOFTWARE"]
                 env["REDIRECT_STATUS"] = "200"
 
 
@@ -488,10 +514,14 @@ def main():
             "tools.staticdir.root": THISDIR,
             "tools.staticdir.on": True,
             "tools.staticdir.dir": "",
+            # CgiServer
+            #"tools.cgiserver.root": THISDIR
         },
         "/cgi": {
             # CgiServer
             "tools.cgiserver.on": True,
+            "tools.cgiserver.base_url": "/cgi",
+            "tools.cgiserver.dir": os.path.join(THISDIR, "php_files"),
             "tools.cgiserver.handlers": {
                 ".php": "/usr/bin/php-cgi",
                 ".py": "/usr/bin/python",

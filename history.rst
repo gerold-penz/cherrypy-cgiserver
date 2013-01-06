@@ -4,6 +4,15 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.1.2
+=============
+
+2013-01-06
+
+- Script filename, script name, script extension, ...
+
+
+=============
 Version 0.1.1
 =============
 
