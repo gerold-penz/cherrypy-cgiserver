@@ -1,11 +1,11 @@
 <?php
   $name = 'CherryPy CGI PHP World';
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!doctype html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
   <title>Simple PHP-Page</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <style type="text/css">
     body {
       font-family: sans-serif;
@@ -13,9 +13,8 @@
   </style>
 </head>
 <body>
-
   <div style="float: right; margin-left: 3em; margin-bottom: 3em;">
-    <img src="../php_files/cherrypy.png" alt="CherryPy" />
+    <img src="images/cherrypy.png" alt="CherryPy" />
   </div>
 
   <h1>Simple PHP-Page</h1>
@@ -45,6 +44,5 @@
   </p>
 
   <div style="clear: both"></div>
-
 </body>
 </html>
