@@ -11,6 +11,10 @@ Version 0.1.2
 
 - Script filename, script name, script extension, ...
 
+- Environment variables filled
+
+- Full functional Example successful tested
+
 
 =============
 Version 0.1.1

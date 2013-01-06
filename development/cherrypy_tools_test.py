@@ -11,14 +11,11 @@ Created
 import os
 import cherrypy
 import subprocess
-import urlparse
 from cStringIO import StringIO
 from cherrypy.wsgiserver import wsgiserver2
 from cherrypy._cpcompat import unquote
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
-PHPDIRNAME = "php_files"
-PHPDIR = os.path.join(THISDIR, PHPDIRNAME)
 
 
 def safe_unicode(value):
@@ -79,7 +76,7 @@ class CgiServer(cherrypy._cptools.Tool):
         )
 
 
-    def callable(self, base_url, dir, root="", handlers = None):
+    def callable(self, base_url, dir, root="", handlers = None, server_admin = None):
         """
         Verwandelt CherryPy in einen CGI-Server
 
@@ -102,6 +99,10 @@ class CgiServer(cherrypy._cptools.Tool):
             wurde. Wird die Dateiendung nicht im Dictionary gefunden, wird
             das Tool beendet, so dass die Abarbeitung des Requests z.B. von
             Staticdir ausgeliefert werden kann.
+
+        :param server_admin: Enthält Namen/E-Mail-Adresse des
+            Server-Administrators. Diese Information wird über die
+            Umgebungsvariable SERVER_ADMIN an das CGI-Programm übergeben.
         """
 
         # short names for request and headers
@@ -158,11 +159,12 @@ class CgiServer(cherrypy._cptools.Tool):
 
         # Wenn Dateiendung unbekannt, dann Funktion beenden, damit ein
         # evt. eingestelltes Staticdir-Tool die Datei ausliefern kann
-        ext = os.path.splitext(script_filename)
-        if ext[1] not in handlers:
+        ext = os.path.splitext(script_filename)[1]
+        if ext not in handlers:
             return
 
-
+        # Interpreter anhand der Dateiendung ermitteln
+        handler_executable = handlers[ext]
 
 
 #        # TEST ---------
@@ -192,13 +194,97 @@ class CgiServer(cherrypy._cptools.Tool):
         # http://tools.ietf.org/html/rfc3875#page-12
 
         env = {
+            # GATEWAY_INTERFACE
+            # Enthält die Version der CGI-Schnittstelle, die von dem installierten
+            # Server unterstützt wird, z.B. CGI/1.1, wenn die gegenwärtig übliche
+            # Version 1.1 der Schnittstellendefinition unterstützt wird.
+            "GATEWAY_INTERFACE": "CGI/1.1",
+
+            # SERVER_SIGNATURE
+            # Enthält eine erweiterte Selbstauskunft des Servers,
+            # z.B. Apache/1.3.31 Server at localhost Port 80.
+            "SERVER_SIGNATURE": "CherryPy CgiServer",
+
             # REMOTE_ADDR
             # Enthält die IP-Adresse des Server-Rechners, über den das CGI-Script
             # aufgerufen wurde. Es muss sich hierbei nicht unbedingt um die
             # IP-Adresse des aufrufenden Client-Rechners handeln - der Wert kann
             # beispielsweise auch von einem Proxy-Server stammen.
-            "REMOTE_ADDR": headers.get("remote-addr", "127.0.0.1")
+            "REMOTE_ADDR": request.remote.ip,
+
+            # REMOTE_PORT
+            # Ermittelt, über welchen Port des Client-Rechners das CGI-Script
+            # aufgerufen wurde. Diese Zahl liegt gewöhnlich im Bereich ab 1024
+            # aufwärts und wird vom aufrufenden Web-Browser zufällig ausgewählt.
+            "REMOTE_PORT": str(request.remote.port),
+
+            # SERVER_ADDR
+            # Enthält die IP-Adresse des Server-Rechners.
+            "SERVER_ADDR": request.local.ip,
+
+            # SERVER_PORT
+            # Enthält die Portnummer, die für den Webserver eingerichtet wurde.
+            # Normalerweise ist dies für Webserver die Nummer 80.
+            "SERVER_PORT": str(request.local.port),
+
+            # DOCUMENT_ROOT
+            # Enthält den physischen Pfad des Wurzelverzeichnisses für die Ablage
+            # von Dateien, die im Webserver aufrufbar sind. Ein CGI-Script kann aus
+            # dieser Angabe beispielsweise absolute Pfadnamen zum Öffnen von Dateien
+            # errechnen.
+            "DOCUMENT_ROOT": dir,
+
+            # PATH_INFO
+            # Wird einem CGI-Script eine Zeichenkette mit Daten übergeben,
+            # dann enthält PATH_INFO den Teil der Zeichenkette nach dem Namen
+            # des Scripts bis zum ersten ?. Wenn das Script beispielsweise die
+            # Adresse http://meine.seite.net/cgi-bin/test.pl hat, aber mit
+            # http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql?cat=Mozart
+            # aufgerufen wird, dann enthält diese Umgebungsvariable den Anteil
+            # /querys/musicbase.sql. Sie ist dazu gedacht, Dateinamen mit Pfadangabe
+            # als Übergabeparameter für Scripts zu ermöglichen.
+            "PATH_INFO": path_info,
+
+            # PATH_TRANSLATED
+            # Enthält wie PATH_INFO den Anteil des URI nach dem Scriptnamen bis
+            # zum ersten ?, jedoch mit dem Unterschied, dass nicht der Anteil
+            # selbst aus dem URI zurückgegeben wird, sondern der vom Webserver
+            # übersetzte Datenpfad dieses Anteils. Angenommen, das Script hat die
+            # Adresse http://meine.seite.net/cgi-bin/test.pl, wurde aber mit
+            # http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql aufgerufen.
+            # Dann könnte der zusätzliche Adressanteil /querys/musicbase.sql aus
+            # Sicht des Webservers beispielsweise in einen physischen Pfadnamen wie
+            # /usr/web/seite/querys/musicbase.sql aufgelöst werden. Diesen Pfadnamen
+            # würde PATH_TRANSLATED zurückgeben.
+            "PATH_TRANSLATED": dir.rstrip("/") + path_info if path_info else "",
+
+            # SCRIPT_FILENAME
+            # Enthält den physischen Pfad des Scripts auf dem Server-Rechner,
+            # also z.B. /usr/web/data/cgi-bin/test.pl.
+            "SCRIPT_FILENAME": script_filename,
+
+            # SCRIPT_NAME
+            # Enthält den HTTP-Pfad des Scripts. Angenommen, das Script hat die
+            # Adresse http://meine.seite.net/cgi-bin/test.pl. Dann liefert
+            # SCRIPT_NAME den Wert /cgi-bin/test.pl.
+            "SCRIPT_NAME": script_name,
         }
+
+        # REMOTE_HOST
+        # Enthält den Hostnamen des Rechners, über den das CGI-Script aufgerufen
+        # wurde. Dieser Wert wird jedoch nur gesetzt, wenn der Webserver
+        # entsprechend konfiguriert und dazu in der Lage ist, der IP-Adresse
+        # den entsprechenden Hostnamen zuzuordnen. Es muss sich hierbei nicht
+        # unbedingt um die IP-Adresse des aufrufenden Client-Rechners handeln -
+        # der Wert kann beispielsweise auch von einem Proxy-Server stammen.
+        if request.remote.name:
+            env["REMOTE_HOST"] = request.remote.name
+
+        # SERVER_NAME
+        # Enthält den Namen des Server-Rechners, auf dem das CGI-Script läuft.
+        # Normalerweise ist dies der eingetragene Hostname des Rechners.
+        if request.local.name:
+            env["SERVER_NAME"] = request.local.name
 
         # CONTENT_LENGTH
         # Enthält die Anzahl der Zeichen, die beim Aufruf des CGI-Scripts
@@ -221,19 +307,6 @@ class CgiServer(cherrypy._cptools.Tool):
         # Seite Datenstrom bei Übertragung von Formulardaten).
         if "content-type" in headers:
             env["CONTENT_TYPE"] = headers["CONTENT_TYPE"]
-
-        # DOCUMENT_ROOT
-        # Enthält den physischen Pfad des Wurzelverzeichnisses für die Ablage
-        # von Dateien, die im Webserver aufrufbar sind. Ein CGI-Script kann aus
-        # dieser Angabe beispielsweise absolute Pfadnamen zum Öffnen von Dateien
-        # errechnen.
-        env["DOCUMENT_ROOT"] = dir
-
-        # GATEWAY_INTERFACE
-        # Enthält die Version der CGI-Schnittstelle, die von dem installierten
-        # Server unterstützt wird, z.B. CGI/1.1, wenn die gegenwärtig übliche
-        # Version 1.1 der Schnittstellendefinition unterstützt wird.
-        env["GATEWAY_INTERFACE"] = "CGI/1.1"
 
         # HTTP_ACCEPT
         # Enthält die Liste der MIME-Typen, die der aufrufende Web-Browser
@@ -312,34 +385,6 @@ class CgiServer(cherrypy._cptools.Tool):
         if "user-agent" in headers:
             env["HTTP_USER_AGENT"] = headers["user-agent"]
 
-        # PATH_INFO
-        # Wird einem CGI-Script eine Zeichenkette mit Daten übergeben,
-        # dann enthält PATH_INFO den Teil der Zeichenkette nach dem Namen
-        # des Scripts bis zum ersten ?. Wenn das Script beispielsweise die
-        # Adresse http://meine.seite.net/cgi-bin/test.pl hat, aber mit
-        # http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql?cat=Mozart
-        # aufgerufen wird, dann enthält diese Umgebungsvariable den Anteil
-        # /querys/musicbase.sql. Sie ist dazu gedacht, Dateinamen mit Pfadangabe
-        # als Übergabeparameter für Scripts zu ermöglichen.
-        env["PATH_INFO"] = path_info
-
-        # path_info: u'/cgi/dateiname.php/arbeitsdir/arbeitsdatei.sql'
-        # es sollte "/arbeitsdir/arbeitsdatei.sql" zurück gegeben werden
-
-
-
-        # PATH_TRANSLATED
-        # Enthält wie PATH_INFO den Anteil des URI nach dem Scriptnamen bis
-        # zum ersten ?, jedoch mit dem Unterschied, dass nicht der Anteil
-        # selbst aus dem URI zurückgegeben wird, sondern der vom Webserver
-        # übersetzte Datenpfad dieses Anteils. Angenommen, das Script hat die
-        # Adresse http://meine.seite.net/cgi-bin/test.pl, wurde aber mit
-        # http://meine.seite.net/cgi-bin/test.pl/querys/musicbase.sql aufgerufen.
-        # Dann könnte der zusätzliche Adressanteil /querys/musicbase.sql aus
-        # Sicht des Webservers beispielsweise in einen physischen Pfadnamen wie
-        # /usr/web/seite/querys/musicbase.sql aufgelöst werden. Diesen Pfadnamen
-        # würde PATH_TRANSLATED zurückgeben.
-
         # QUERY_STRING
         # Enthält eine Zeichenkette mit Daten, die dem Script im URI nach dem
         # ersten ? übergeben wurden. Angenommen, das Script hat die Adresse
@@ -351,23 +396,15 @@ class CgiServer(cherrypy._cptools.Tool):
         # dieser Umgebungsvariablen die ausgefüllten Formulardaten. Die Daten
         # sind nach den Regeln des MIME-Typs application/x-www-form-urlencoded
         # kodiert.
-
-        # REMOTE_HOST
-        # Enthält den Hostnamen des Rechners, über den das CGI-Script aufgerufen
-        # wurde. Dieser Wert wird jedoch nur gesetzt, wenn der Webserver
-        # entsprechend konfiguriert und dazu in der Lage ist, der IP-Adresse
-        # den entsprechenden Hostnamen zuzuordnen. Es muss sich hierbei nicht
-        # unbedingt um die IP-Adresse des aufrufenden Client-Rechners handeln -
-        # der Wert kann beispielsweise auch von einem Proxy-Server stammen.
+        if hasattr(request, "query_string"):
+            env["QUERY_STRING"] = request.query_string
+        elif hasattr(request, "wsgi_environ"):
+            if "QUERY_STRING" in request.wsgi_environ:
+                env["QUERY_STRING"] = request.wsgi_environ["QUERY_STRING"]
 
         # REMOTE_IDENT
         # Enthält Protokollinformationen, wenn auf dem Server das Protokoll
         # ident für geschützte Zugriffe läuft.
-
-        # REMOTE_PORT
-        # Ermittelt, über welchen Port des Client-Rechners das CGI-Script
-        # aufgerufen wurde. Diese Zahl liegt gewöhnlich im Bereich ab 1024
-        # aufwärts und wird vom aufrufenden Web-Browser zufällig ausgewählt.
 
         # REMOTE_USER
         # Enthält den Benutzernamen, mit dem sich der aufrufende Benutzer
@@ -376,6 +413,9 @@ class CgiServer(cherrypy._cptools.Tool):
         # aufrufende Benutzer mit Benutzernamen und Passwort anmelden. Der
         # dabei eingegebene Benutzername kann mit dieser Variable ermittelt
         # werden.
+        if hasattr(request, "login"):
+            if request.login and not request.login.lower() == "none":
+                env["REMOTE_USER"] = request.login
 
         # REQUEST_METHOD
         # Enthält die HTTP-Anfragemethode, mit der das CGI-Programm aufgerufen
@@ -392,32 +432,15 @@ class CgiServer(cherrypy._cptools.Tool):
         # http://meine.seite.net/cgi-bin/test.pl und wurde mit
         # http://meine.seite.net/cgi-bin/test.pl?User=Stefan aufgerufen.
         # Dann liefert REQUEST_URI den Wert /cgi-bin/test.pl?User=Stefan.
-
-        # SCRIPT_FILENAME
-        # Enthält den physischen Pfad des Scripts auf dem Server-Rechner,
-        # also z.B. /usr/web/data/cgi-bin/test.pl.
-        env["SCRIPT_FILENAME"] = script_filename
-
-        # SCRIPT_NAME
-        # Enthält den HTTP-Pfad des Scripts. Angenommen, das Script hat die
-        # Adresse http://meine.seite.net/cgi-bin/test.pl. Dann liefert
-        # SCRIPT_NAME den Wert /cgi-bin/test.pl.
-        env["SCRIPT_NAME"] = script_name
-
-        # SERVER_ADDR
-        # Enthält die IP-Adresse des Server-Rechners.
+        elif hasattr(request, "wsgi_environ"):
+            if "REQUEST_URI" in request.wsgi_environ:
+                env["REQUEST_URI"] = request.wsgi_environ["REQUEST_URI"]
 
         # SERVER_ADMIN
         # Enthält Namen/E-Mail-Adresse des in der Webserver-Konfiguration
         # eingetragenen Server-Administrators.
-
-        # SERVER_NAME
-        # Enthält den Namen des Server-Rechners, auf dem das CGI-Script läuft.
-        # Normalerweise ist dies der eingetragene Hostname des Rechners.
-
-        # SERVER_PORT
-        # Enthält die Portnummer, die für den Webserver eingerichtet wurde.
-        # Normalerweise ist dies für Webserver die Nummer 80.
+        if server_admin:
+            env["SERVER_ADMIN"] = server_admin
 
         # SERVER_PROTOCOL
         # Enthält die Version des HTTP-Protokolls, das der installierte
@@ -426,39 +449,23 @@ class CgiServer(cherrypy._cptools.Tool):
         if hasattr(request, "server_protocol"):
             env["SERVER_PROTOCOL"] = request.server_protocol
 
-        # SERVER_SIGNATURE
-        # Enthält eine erweiterte Selbstauskunft des Servers,
-        # z.B. Apache/1.3.31 Server at localhost Port 80.
-
-        # SERVER_SOFTWARE  (Nicht mit PHP)
+        # SERVER_SOFTWARE
         # Enthält den Namen und die Versionsnummer der Webserver-Software auf
         # dem Server-Rechner.
-        #
         if hasattr(request, "wsgi_environ"):
             if "SERVER_SOFTWARE" in request.wsgi_environ:
                 env["SERVER_SOFTWARE"] = request.wsgi_environ["SERVER_SOFTWARE"]
                 env["REDIRECT_STATUS"] = "200"
 
-
-
-        # ToDo: Wenn Dateiendung bekannt, dann bekannten Interpreter mit Datei als Parameter aufrufen
-        # cgi_handlers {"php": "php-cgi", "py": "python"}
-
-
-
-        print
-        print os.path.join(PHPDIR, "phpinfo.php")
-        print
-
-        # call PHP interpreter
-        cmd_args = ["/usr/bin/php5-cgi", os.path.join(PHPDIR, "phpinfo.php"), "--"]
+        # call interpreter
+        cmd_args = [handler_executable, script_filename]
         proc = subprocess.Popen(
             cmd_args,
-            executable = "/usr/bin/php5-cgi",
+            executable = handler_executable,
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
             stderr = subprocess.STDOUT,
-            cwd = PHPDIR,
+            cwd = dir,
             env = env
         )
         proc.stdin.write(body_file.read())
@@ -514,18 +521,16 @@ def main():
             "tools.staticdir.root": THISDIR,
             "tools.staticdir.on": True,
             "tools.staticdir.dir": "",
-            # CgiServer
-            #"tools.cgiserver.root": THISDIR
+
+            # CgiServer Root
+            "tools.cgiserver.root": THISDIR
         },
         "/cgi": {
             # CgiServer
             "tools.cgiserver.on": True,
             "tools.cgiserver.base_url": "/cgi",
-            "tools.cgiserver.dir": os.path.join(THISDIR, "php_files"),
-            "tools.cgiserver.handlers": {
-                ".php": "/usr/bin/php-cgi",
-                ".py": "/usr/bin/python",
-            },
+            "tools.cgiserver.dir": "php_files",
+            "tools.cgiserver.handlers": {".php": "/usr/bin/php-cgi"},
         }
     }
     app = cherrypy.Application(Root(), config = config)
