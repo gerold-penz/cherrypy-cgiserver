@@ -135,13 +135,10 @@ class CgiServer(cherrypy._cptools.Tool):
         # prepare body
         if cherrypy.request.method in cherrypy.request.methods_with_bodies:
             body_file = cherrypy.request.rfile
+            content_length = cherrypy.request.headers.get("content-length", 0)
         else:
             body_file = StringIO()
-
-        # get size of the body
-        body_file.seek(0, 2)
-        content_length = body_file.tell()
-        body_file.seek(0)
+            content_length = None
 
         # prepare environment for CGI callable
         # There I got infos about the environment variables:
@@ -165,7 +162,7 @@ class CgiServer(cherrypy._cptools.Tool):
         # steht in dieser Umgebungsvariablen, wie viele Zeichen das Script
         # von der Standardeingabe lesen muss, um die übermittelten
         # Formulardaten vollständig einzulesen.
-        if content_length:
+        if not content_length is None:
             env["CONTENT_LENGTH"] = str(content_length)
 
         # CONTENT_TYPE
