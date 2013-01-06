@@ -15,7 +15,7 @@
 <body>
 
   <div style="float: right; margin-left: 3em; margin-bottom: 3em;">
-    <img src="cherrypy.png" alt="CherryPy" />
+    <img src="../php_files/cherrypy.png" alt="CherryPy" />
   </div>
 
   <h1>Simple PHP-Page</h1>
