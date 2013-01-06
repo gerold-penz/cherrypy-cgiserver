@@ -4,6 +4,17 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.1.1
+=============
+
+2013-01-06
+
+- started to fill the environment variables
+
+- REDIRECT_STATUS ist set because of PHP security settings
+
+
+=============
 Version 0.1.0
 =============
 

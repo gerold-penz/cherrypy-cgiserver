@@ -19,6 +19,43 @@ PHPDIRNAME = "php_files"
 PHPDIR = os.path.join(THISDIR, PHPDIRNAME)
 
 
+def safe_unicode(value):
+    """
+    Versucht den übergebenen Wert als Unicode-String zurück zu geben, auch wenn
+    dabei Informationen verloren gehen.
+    """
+
+    try:
+        return unicode(value)
+    except UnicodeDecodeError:
+        try:
+            return unicode(value, "utf-8")
+        except UnicodeDecodeError:
+            return unicode(value, "iso-8859-15", "ignore")
+        except StandardError, err:
+            return unicode(repr(value))
+    except StandardError, err:
+        return unicode(repr(value))
+
+
+def show_request():
+    """
+    Zeigt die Attribute des Requests als Text an.
+    """
+    from pprint import pformat
+
+    retstr = u"<pre>"
+    for key, value in cherrypy.request.__dict__.items():
+        value = safe_unicode(value)
+        retstr += u"%s: %s\n\n" % (
+            key,
+            pformat(value).replace("\\n", "\n")
+        )
+    retstr += u"</pre>"
+
+    return unicode(retstr)
+
+
 class CgiServer(cherrypy._cptools.Tool):
     """
     Erster Test mit einer Tool-Klasse
@@ -184,6 +221,7 @@ class CgiServer(cherrypy._cptools.Tool):
         # Enthält die Version der CGI-Schnittstelle, die von dem installierten
         # Server unterstützt wird, z.B. CGI/1.1, wenn die gegenwärtig übliche
         # Version 1.1 der Schnittstellendefinition unterstützt wird.
+        env["GATEWAY_INTERFACE"] = "CGI/1.1"
 
         # HTTP_ACCEPT
         # Enthält die Liste der MIME-Typen, die der aufrufende Web-Browser
@@ -210,7 +248,6 @@ class CgiServer(cherrypy._cptools.Tool):
         if "accept-language" in cherrypy.request.headers:
             env["HTTP_ACCEPT_LANGUAGE"] = cherrypy.request.headers["accept-language"]
 
-
         # HTTP_CONNECTION
         # Enthält Informationen über den Status der HTTP-Verbindung zwischen
         # Server und aufrufendem Browser. Der Wert Keep-Alive bedeutet, der
@@ -232,6 +269,11 @@ class CgiServer(cherrypy._cptools.Tool):
         # Enthält den Domain-Namen oder die IP-Adresse aus der Adresszeile des
         # aufrufenden Browsers. Für ein CGI-Script kann diese Angabe wichtig sein,
         # falls es mehrere Server bedienen muss.
+        if "host" in cherrypy.request.headers:
+            env["HTTP_HOST"] = cherrypy.request.headers["host"]
+        elif hasattr(cherrypy.request, "wsgi_environ"):
+            if "HTTP_HOST" in cherrypy.request.wsgi_environ:
+                env["HTTP_HOST"] = cherrypy.request.wsgi_environ["HTTP_HOST"]
 
         # HTTP_REFERER
         # Enthält den URI der Web-Seite, von der aus das CGI-Script aufgerufen
@@ -277,7 +319,6 @@ class CgiServer(cherrypy._cptools.Tool):
         # sind nach den Regeln des MIME-Typs application/x-www-form-urlencoded
         # kodiert.
 
-
         # REMOTE_HOST
         # Enthält den Hostnamen des Rechners, über den das CGI-Script aufgerufen
         # wurde. Dieser Wert wird jedoch nur gesetzt, wenn der Webserver
@@ -309,6 +350,8 @@ class CgiServer(cherrypy._cptools.Tool):
         # Variable auslesen und danach entscheiden, wie es Formulardaten
         # einlesen kann: entweder von der Standardeingabe (bei Methode POST)
         # oder aus der Umgebungsvariablen QUERY_STRING (bei Methode GET).
+        if hasattr(cherrypy.request, "method"):
+            env["REQUEST_METHOD"] = cherrypy.request.method
 
         # REQUEST_URI
         # Enthält den HTTP-Pfad des Scripts inklusive der im Aufruf übergebenen
@@ -321,10 +364,19 @@ class CgiServer(cherrypy._cptools.Tool):
         # Enthält den physischen Pfad des Scripts auf dem Server-Rechner,
         # also z.B. /usr/web/data/cgi-bin/test.pl.
 
+        # ToDo: ändern
+        env["SCRIPT_FILENAME"] = os.path.join(PHPDIR, "phpinfo.php")
+
+
         # SCRIPT_NAME
         # Enthält den HTTP-Pfad des Scripts. Angenommen, das Script hat die
         # Adresse http://meine.seite.net/cgi-bin/test.pl. Dann liefert
         # SCRIPT_NAME den Wert /cgi-bin/test.pl.
+#        if hasattr(cherrypy.request, "script_name"):
+#            env["SCRIPT_NAME"] = cherrypy.request.script_name
+
+        # ToDo: ändern
+        env["SCRIPT_NAME"] = "/cgi/phpinfo.php"
 
         # SERVER_ADDR
         # Enthält die IP-Adresse des Server-Rechners.
@@ -345,14 +397,21 @@ class CgiServer(cherrypy._cptools.Tool):
         # Enthält die Version des HTTP-Protokolls, das der installierte
         # Webserver unterstützt, z.B. HTTP/1.1, wenn die gegenwärtig übliche
         # Version 1.1 des HTTP-Protokolls unterstützt wird.
+        if hasattr(cherrypy.request, "server_protocol"):
+            env["SERVER_PROTOCOL"] = cherrypy.request.server_protocol
 
         # SERVER_SIGNATURE
         # Enthält eine erweiterte Selbstauskunft des Servers,
         # z.B. Apache/1.3.31 Server at localhost Port 80.
 
-        # SERVER_SOFTWARE
+        # SERVER_SOFTWARE  (Nicht mit PHP)
         # Enthält den Namen und die Versionsnummer der Webserver-Software auf
         # dem Server-Rechner.
+        #
+        if hasattr(cherrypy.request, "wsgi_environ"):
+            if "SERVER_SOFTWARE" in cherrypy.request.wsgi_environ:
+                env["SERVER_SOFTWARE"] = cherrypy.request.wsgi_environ["SERVER_SOFTWARE"]
+                env["REDIRECT_STATUS"] = "200"
 
 
 
@@ -361,15 +420,19 @@ class CgiServer(cherrypy._cptools.Tool):
 
 
 
+        print
+        print os.path.join(PHPDIR, "phpinfo.php")
+        print
 
         # call PHP interpreter
-        cmd_args = ["php5-cgi", os.path.join(PHPDIR, "phpinfo.php")]
+        cmd_args = ["/usr/bin/php5-cgi", os.path.join(PHPDIR, "phpinfo.php"), "--"]
         proc = subprocess.Popen(
             cmd_args,
-            executable = "php5-cgi",
+            executable = "/usr/bin/php5-cgi",
             stdin = subprocess.PIPE,
             stdout = subprocess.PIPE,
             stderr = subprocess.STDOUT,
+            cwd = PHPDIR,
             env = env
         )
         proc.stdin.write(body_file.read())
@@ -390,9 +453,16 @@ cherrypy.tools.cgiserver = CgiServer()
 
 class Root(object):
 
+
     def index(self, *args, **kwargs):
 
-        return u"OK"
+        return """
+        <html>
+        <body>
+            {request}
+        </body>
+        </html>
+        """.format(request = show_request())
 
     index.exposed = True
 
@@ -411,25 +481,24 @@ def main():
         "tools.trailing_slash.on": True,
         # Gzip
         "tools.gzip.on": True,
-
-        # CgiServer
-        "tools.cgiserver.on": True,
-        "tools.cgiserver.handlers": {
-            ".php": "/usr/bin/php-cgi",
-            ".py": "/usr/bin/python",
-        },
     })
 
-#    config = {
-#        "/": {
-#            "tools.staticdir.root": THISDIR,
-#            "tools.staticdir.on": True,
-#            "tools.staticdir.dir": "",
-#        }
-#    }
-
-
-    app = cherrypy.Application(Root())
+    config = {
+        "/": {
+            "tools.staticdir.root": THISDIR,
+            "tools.staticdir.on": True,
+            "tools.staticdir.dir": "",
+        },
+        "/cgi": {
+            # CgiServer
+            "tools.cgiserver.on": True,
+            "tools.cgiserver.handlers": {
+                ".php": "/usr/bin/php-cgi",
+                ".py": "/usr/bin/python",
+            },
+        }
+    }
+    app = cherrypy.Application(Root(), config = config)
 
     cherrypy.quickstart(app)
 
