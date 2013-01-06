@@ -31,15 +31,22 @@ class CgiServer(cherrypy._cptools.Tool):
         Beim Initialisieren werden Hook-Punkt, Name, Priorität, usw. festgelegt.
         """
 
-        self._point = "on_start_resource"
-        self._name = "cgiserver"
-        self._priority = 50
-        self.__doc__ = self.callable.__doc__
-        self._setargs()
+        cherrypy._cptools.Tool.__init__(
+            self,
+            point = "on_start_resource",
+            callable = self.callable,
+            name = "cgiserver",
+            priority = 50
+        )
 
 
-    def callable(self):
+    def callable(self, handlers):
         """
+
+        :param cgi_handlers: Dictionary mit den Dateiendungen und den
+            zugehörigen Interpretern. z.B.::
+
+                {"php": "/usr/bin/php-cgi", "py": "/usr/bin/python"}
         """
 
 # cherrypy.request
@@ -115,15 +122,26 @@ class CgiServer(cherrypy._cptools.Tool):
 #            'Referer': 'http://localhost:8080/'
 #        }
 
+
+
+        # ToDo: Dateiname ermitteln
+
+        # ToDo: Wenn Dateiendung unbekannt, dann Funktion beenden, damit ein
+        # evt. eingestelltes Staticdir-Tool die Datei ausliefern kann
+
+
+
+
         # prepare body
         if cherrypy.request.method in cherrypy.request.methods_with_bodies:
             body_file = cherrypy.request.rfile
         else:
             body_file = StringIO()
 
-        # get file size of the body
+        # get size of the body
         body_file.seek(0, 2)
         content_length = body_file.tell()
+        body_file.seek(0)
 
         # prepare environment for CGI callable
         # There I got infos about the environment variables:
@@ -341,6 +359,11 @@ class CgiServer(cherrypy._cptools.Tool):
 
 
 
+        # ToDo: Wenn Dateiendung bekannt, dann bekannten Interpreter mit Datei als Parameter aufrufen
+        # cgi_handlers {"php": "php-cgi", "py": "python"}
+
+
+
 
         # call PHP interpreter
         cmd_args = ["php5-cgi", os.path.join(PHPDIR, "phpinfo.php")]
@@ -354,15 +377,15 @@ class CgiServer(cherrypy._cptools.Tool):
         )
         proc.stdin.write(body_file.read())
 
-        # Get headers
+        # get headers
         cherrypy.serving.response.headers = wsgiserver2.read_headers(
             proc.stdout, cherrypy.serving.response.headers
         )
 
-        # Get body
+        # get body
         cherrypy.serving.response.body = proc.stdout
 
-        # Finished: no more request handler needed
+        # finished: no more request handler needed
         cherrypy.serving.request.handler = None
 
 cherrypy.tools.cgiserver = CgiServer()
@@ -393,7 +416,11 @@ def main():
         "tools.gzip.on": True,
 
         # CgiServer
-        "tools.cgiserver.on": True
+        "tools.cgiserver.on": True,
+        "tools.cgiserver.handlers": {
+            ".php": "/usr/bin/php-cgi",
+            ".py": "/usr/bin/python",
+        },
     })
 
 #    config = {

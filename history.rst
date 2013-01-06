@@ -4,8 +4,23 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.1.0
+=============
+
+2013-01-06
+
+- Tests with CherryPy, Tools and PHP-CGI
+
+- Collected informations about Common Gateway Interface
+
+- Descriptions for environment variables written
+
+
+=============
 Version 0.0.1
 =============
+
+2013-01-05
 
 - First trials with Git
 
