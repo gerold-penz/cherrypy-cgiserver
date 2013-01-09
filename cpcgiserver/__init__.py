@@ -316,8 +316,8 @@ class CgiServer(cherrypy._cptools.Tool):
         # HTTP_COOKIE
         # Enthält Namen und Wert von Cookies, sofern solche vom aufrufenden
         # Browser gesendet werden.
-        if request.cookie:
-            env["HTTP_COOKIE"] = request.cookie
+        if "cookie" in request.headers:
+            env["HTTP_COOKIE"] = request.headers["cookie"]
 
         # HTTP_HOST
         # Enthält den Domain-Namen oder die IP-Adresse aus der Adresszeile des
