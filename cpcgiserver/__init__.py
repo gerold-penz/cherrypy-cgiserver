@@ -475,6 +475,22 @@ class CgiServer(cherrypy._cptools.Tool):
         except ValueError:
             response.seek(0)
 
+        # Redirect if needed
+        if "status" in cherrypy.serving.response.headers:
+            if "location" in cherrypy.serving.response.headers:
+                status_string = cherrypy.serving.response.headers["status"]
+                status = None
+                if status_string:
+                    status = int(status_string[:3])
+                if status in [
+                    httplib.TEMPORARY_REDIRECT,
+                    httplib.MOVED_PERMANENTLY,
+                    httplib.FOUND
+                ]:
+                    location = cherrypy.serving.response.headers["location"]
+                    if location:
+                        raise cherrypy.HTTPRedirect(location, status)
+
         # Get body
         cherrypy.serving.response.body = response
 
