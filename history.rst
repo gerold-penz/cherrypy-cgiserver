@@ -2,6 +2,16 @@
 CherryPy CGI-Server - History
 #############################
 
+=============
+Version 0.2.1
+=============
+
+2013-01-09
+
+- Get back response (header and body lines) into spooled temporary file
+
+- Determine *script_name* corrected
+
 
 =============
 Version 0.2.0

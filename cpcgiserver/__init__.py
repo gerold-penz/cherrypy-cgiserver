@@ -13,6 +13,7 @@ import os
 import cherrypy
 import subprocess
 import tempfile
+import httplib
 from cStringIO import StringIO
 from cherrypy.wsgiserver import wsgiserver2
 from cherrypy._cpcompat import unquote
@@ -39,7 +40,15 @@ class CgiServer(cherrypy._cptools.Tool):
         )
 
 
-    def callable(self, base_url, dir, root="", handlers = None, server_admin = None):
+    def callable(
+        self,
+        base_url,
+        dir,
+        root="",
+        handlers = None,
+        server_admin = None,
+        response_file_max_size_in_memory = 16000000
+    ):
         """
         Adds an embedded CGI server to CherryPy
 
@@ -49,6 +58,8 @@ class CgiServer(cherrypy._cptools.Tool):
         :param dir: Absoluter oder relativer Pfad zum Ordner mit den CGI-Dateien.
             Wird der Pfad relativ angegeben, dann wird er an *root* angehängt.
             Gleiches Verhalten wie beim Staticdir-Tool.
+            Achtung! Die Eingebaute Python-Funktion *dir* wird hiermit
+            überschrieben.
 
         :param root: An diesen Pfad wird *dir* angehängt, falls *dir* nicht
             absolut übergeben wurde.
@@ -66,6 +77,12 @@ class CgiServer(cherrypy._cptools.Tool):
         :param server_admin: Enthält Namen/E-Mail-Adresse des
             Server-Administrators. Diese Information wird über die
             Umgebungsvariable SERVER_ADMIN an das CGI-Programm übergeben.
+
+        :param response_file_max_size_in_memory: Gibt an, wieviel Speicher
+            die Rückgabe des CGI-Interpreters im Speicher verwenden darf, bevor
+            diese in eine temporäre Datei ausgelagert wird. Je mehr Speicher
+            desto weniger oft muss auf die Festplatte geschrieben werden.
+            Standard: 16 MB
         """
 
         # short names for request and headers
@@ -80,7 +97,7 @@ class CgiServer(cherrypy._cptools.Tool):
         # (copied from *cherrypy.lib.static*)
         if not os.path.isabs(dir):
             if not root:
-                msg = "Static dir requires an absolute dir (or root)."
+                msg = "CGI-Server requires an absolute dir (or root)."
                 cherrypy.log(msg, 'TOOLS.CGISERVER')
                 raise ValueError(msg)
             dir = os.path.join(root, dir)
@@ -111,7 +128,7 @@ class CgiServer(cherrypy._cptools.Tool):
             return
 
         # URL des Skriptes ermitteln
-        script_name = script_filename[len(dir):]
+        script_name = base_url + script_filename[len(dir):]
 
         # There's a chance that the branch pulled from the URL might
         # have ".." or similar uplevel attacks in it. Check that the final
@@ -135,7 +152,6 @@ class CgiServer(cherrypy._cptools.Tool):
 #        cherrypy.serving.request.handler = None
 #        return
 #        # TEST ----------
-
 
 
         # prepare body
@@ -431,41 +447,13 @@ class CgiServer(cherrypy._cptools.Tool):
         )
         proc.stdin.write(body_file.read())
 
-        # Get response (header and body lines)
-        response = StringIO(proc.stdout.read())
-
-
-        # ToDo: Response in eine temporäre Datei schreiben
-
-        # tempfile.SpooledTemporaryFile([max_size=0[, mode='w+b'[, bufsize=-1[, suffix=''[, prefix='tmp'[, dir=None]]]]]])
-        #
-        # This function operates exactly as TemporaryFile() does, except that data is
-        # spooled in memory until the file size exceeds max_size, or until the file’s
-        # fileno() method is called, at which point the contents are written to disk
-        # and operation proceeds as with TemporaryFile(). Also, it’s truncate method
-        # does not accept a size argument.
-        #
-        # The resulting file has one additional method, rollover(), which causes the
-        # file to roll over to an on-disk file regardless of its size.
-        #
-        # The returned object is a file-like object whose _file attribute is either
-        # a StringIO object or a true file object, depending on whether rollover()
-        # has been called. This file-like object can be used in a with statement,
-        # just like a normal file.
-        #
-        # New in version 2.6.
-
-        ## Get response (header and body lines) into spooled temporary file
-        #response = tempfile.SpooledTemporaryFile(
-        #    max_size = response_file_max_size_in_memory,
-        #    mode = "w+b",
-        #    suffix = "cpcgiserver",
-        #    prefix = "tmp",
-        #    dir = None
-        #)
-        #response.write(proc.stdout.read())
-
-
+        # Get response (header and body lines) into spooled temporary file
+        response = tempfile.SpooledTemporaryFile(
+            max_size = response_file_max_size_in_memory,
+            mode = "w+b"
+        )
+        response.write(proc.stdout.read())
+        response.seek(0)
 
         # Get header lines
         try:
