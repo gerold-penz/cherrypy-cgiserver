@@ -264,7 +264,7 @@ class CgiServer(cherrypy._cptools.Tool):
         # application/x-www-form-urlencoded (zu diesem MIME-Typ siehe auch
         # Seite Datenstrom bei Übertragung von Formulardaten).
         if "content-type" in headers:
-            env["CONTENT_TYPE"] = headers["CONTENT_TYPE"]
+            env["CONTENT_TYPE"] = headers["content-type"]
 
         # HTTP_ACCEPT
         # Enthält die Liste der MIME-Typen, die der aufrufende Web-Browser
