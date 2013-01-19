@@ -3,6 +3,25 @@ CherryPy CGI-Server - History
 #############################
 
 =============
+Version 0.2.2
+=============
+
+19.01.2013
+
+- Helper function *_determine_script_filename_and_path_info* created to 
+  help using of *DirectoryIndex*.
+
+- New parameter *directory_index* allows to append filenames to show if no 
+  filename in URL. Like Apache with *DirectoryIndex* does.
+
+- New *lib* package added.
+
+- New module *lib.format_* for additional formating-tools added.
+
+- Examples extended
+
+
+=============
 Version 0.2.1
 =============
 

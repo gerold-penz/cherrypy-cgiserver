@@ -14,11 +14,39 @@ import cherrypy
 import subprocess
 import tempfile
 import httplib
+import lib.format_
 from cStringIO import StringIO
 from cherrypy.wsgiserver import wsgiserver2
 from cherrypy._cpcompat import unquote
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _determine_script_filename_and_path_info(dir, base_url):
+    """
+    Hilfsfunktion: Ermittelt *script_filename* und *path_info*
+
+    Info: Greif auf cherrypy.request.path_info zu.
+    """
+
+    branch = cherrypy.request.path_info[len(base_url) + 1:]
+    branch = unquote(branch.lstrip(r"\/"))
+    branch_items = branch.split("/")
+
+    script_filename = None
+    path_info_start = None
+    path_info = ""
+
+    for i in range(len(branch_items), 0, -1):
+        _file_path = os.path.join(dir, *branch_items[:i])
+        if os.path.isfile(_file_path):
+            script_filename = _file_path
+            path_info_start = i
+            break
+    if not path_info_start is None and branch_items[path_info_start:]:
+        path_info = "/" + "/".join(branch_items[path_info_start:])
+
+    return script_filename, path_info
 
 
 class CgiServer(cherrypy._cptools.Tool):
@@ -47,7 +75,8 @@ class CgiServer(cherrypy._cptools.Tool):
         root="",
         handlers = None,
         server_admin = None,
-        response_file_max_size_in_memory = 16000000
+        response_file_max_size_in_memory = 16000000,
+        directory_index = None
     ):
         """
         Adds an embedded CGI server to CherryPy
@@ -83,6 +112,14 @@ class CgiServer(cherrypy._cptools.Tool):
             diese in eine temporäre Datei ausgelagert wird. Je mehr Speicher
             desto weniger oft muss auf die Festplatte geschrieben werden.
             Standard: 16 MB
+
+        :param directory_index: Gibt die Datei(en) an, die angezeigt werden
+            sollen, wenn statt einer Datei ein Verzeichnis angefordert wurde.
+            Wird nichts angegeben, dann wird keine Standard-Datei zurück gegeben.
+            Der Name dieses Parameters ist an die Apache-Direktive
+            *DirectoryIndex* angelehnt. Wie beim Apachen kann hier ein String
+            mit einer oder mehreren durch Leerzeichen getrennten Dateien
+            übergeben werden. Auch eine Liste mit Dateinamen ist möglich.
         """
 
         # short names for request and headers
@@ -107,25 +144,30 @@ class CgiServer(cherrypy._cptools.Tool):
         if base_url == "":
             base_url = "/"
         base_url = base_url.rstrip(r"\/")
-        branch = request.path_info[len(base_url) + 1:]
-        branch = unquote(branch.lstrip(r"\/"))
 
-        # Dateiname des Skriptes ermitteln (Es muss auf angehängte Pfade geachtet werden.)
-        # Dabei wird auch der an die URL des Skriptes angehängte Pfad ermittelt
-        branch_items = branch.split("/")
-        script_filename = None
-        path_info_start = None
-        path_info = ""
-        for i in range(len(branch_items), 0, -1):
-            _file_path = os.path.join(dir, *branch_items[:i])
-            if os.path.isfile(_file_path):
-                script_filename = _file_path
-                path_info_start = i
-                break
-        if not path_info_start is None and branch_items[path_info_start:]:
-            path_info = "/" + "/".join(branch_items[path_info_start:])
+        # Dateiname des Skriptes und angehängten Pfad ermitteln
+        script_filename, path_info = \
+            _determine_script_filename_and_path_info(dir, base_url)
         if not script_filename:
-            return
+            # Mit *directory_index* versuchen eine existierende Datei zu ermitteln
+            if directory_index and request.path_info.endswith("/"):
+                original_path_info = str(request.path_info)
+                if isinstance(directory_index, basestring):
+                    directory_index = directory_index.split()
+                for indexfile_name in directory_index:
+                    # Path-Info neu setzen, damit StaticFile zum Ausliefern
+                    # verwendet werden kann, falls eine Nicht-CGI-Datei gefunden
+                    # wird.
+                    request.path_info = original_path_info + indexfile_name
+                    script_filename, path_info = \
+                        _determine_script_filename_and_path_info(dir, base_url)
+                    if script_filename:
+                        break
+                else:
+                    request.path_info = original_path_info
+                    return
+            else:
+                return
 
         # URL des Skriptes ermitteln
         script_name = base_url + script_filename[len(dir):]
@@ -148,7 +190,7 @@ class CgiServer(cherrypy._cptools.Tool):
 
 
 #        # TEST ---------
-#        cherrypy.serving.response.body = [show_request()]
+#        cherrypy.serving.response.body = [lib.format_.show_request()]
 #        cherrypy.serving.request.handler = None
 #        return
 #        # TEST ----------

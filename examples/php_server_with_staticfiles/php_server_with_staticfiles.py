@@ -39,6 +39,8 @@ def main():
             "tools.cgiserver.base_url": "/",
             # Connect PHP extension with PHP interpreter program
             "tools.cgiserver.handlers": {".php": "/usr/bin/php-cgi"},
+            # DirectoryIndex
+            "tools.cgiserver.directory_index": "index.html phpinfo.php",
 
             # Staticdir
             "tools.staticdir.on": True,
