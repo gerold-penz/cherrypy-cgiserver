@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 #coding: utf-8
 """
-Simple PHP-Server Example With Static Files
+Simple Python-CGI-Server Example
 
-Links to the PHP pages:
+Links to the Python-CGI pages:
 
-- http://localhost:8080/simple_page.php
-- http://localhost:8080/phpinfo.php
+- http://localhost:8080/simple_page.py
 """
 
 import os
@@ -23,7 +22,6 @@ import cpcgiserver
 
 def main():
 
-    # Configuration
     config = {
         "global": {
             # Server settings
@@ -33,22 +31,12 @@ def main():
         "/": {
             # Enable CgiServer
             "tools.cgiserver.on": True,
-            # Directory with PHP files
-            "tools.cgiserver.dir": THISDIR,
-            # URL for directory with PHP files
+            # Directory with Python-CGI files
+            "tools.cgiserver.dir": os.path.join(THISDIR, "pycgi"),
+            # URL for directory with Python-CGI files
             "tools.cgiserver.base_url": "/",
             # Connect PHP extension with PHP interpreter program
-            "tools.cgiserver.handlers": {".php": "/usr/bin/php-cgi"},
-            # DirectoryIndex
-            "tools.cgiserver.directory_index": ["index.html", "phpinfo.php"],
-
-            # Staticdir
-            "tools.staticdir.on": True,
-            "tools.staticdir.dir": THISDIR,
-            "tools.staticdir.match": (
-                r"(?i)(gif|jpg|png|jpeg|js|7z|pdf|zip|svg|"
-                r"emf|avi|ods|css|ico|html|htm|p3p|swf|htc)$"
-            ),
+            "tools.cgiserver.handlers": {".py": "/usr/bin/python"},
         }
     }
 

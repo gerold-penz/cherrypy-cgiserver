@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#coding: utf-8
+# coding: utf-8
 """
 CherryPy CGI-Server Tool
  
@@ -72,7 +72,7 @@ class CgiServer(cherrypy._cptools.Tool):
         self,
         base_url,
         dir,
-        root="",
+        root = "",
         handlers = None,
         server_admin = None,
         response_file_max_size_in_memory = 16000000,
@@ -120,6 +120,7 @@ class CgiServer(cherrypy._cptools.Tool):
             *DirectoryIndex* angelehnt. Wie beim Apachen kann hier ein String
             mit einer oder mehreren durch Leerzeichen getrennten Dateien
             übergeben werden. Auch eine Liste mit Dateinamen ist möglich.
+            Siehe: http://httpd.apache.org/docs/2.2/mod/mod_dir.html#directoryindex
         """
 
         # short names for request and headers

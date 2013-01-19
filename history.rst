@@ -20,6 +20,8 @@ Version 0.2.2
 
 - Examples extended
 
+- Simple Python-CGI example added
+
 
 =============
 Version 0.2.1
