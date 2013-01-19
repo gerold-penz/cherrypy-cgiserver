@@ -6,7 +6,7 @@ CherryPy CGI-Server - History
 Version 0.2.2
 =============
 
-19.01.2013
+2013-01-19
 
 - Helper function *_determine_script_filename_and_path_info* created to 
   help using of *DirectoryIndex*.
