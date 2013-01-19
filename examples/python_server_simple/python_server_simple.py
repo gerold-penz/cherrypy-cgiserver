@@ -35,7 +35,7 @@ def main():
             "tools.cgiserver.dir": os.path.join(THISDIR, "pycgi"),
             # URL for directory with Python-CGI files
             "tools.cgiserver.base_url": "/",
-            # Connect PHP extension with PHP interpreter program
+            # Connect Python extension with Python interpreter program
             "tools.cgiserver.handlers": {".py": "/usr/bin/python"},
         }
     }
