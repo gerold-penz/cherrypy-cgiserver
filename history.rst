@@ -2,6 +2,16 @@
 CherryPy CGI-Server - History
 #############################
 
+
+=============
+Version 0.2.3
+=============
+
+2013-01-20
+
+- First trial to make a setup with setuptools.
+
+
 =============
 Version 0.2.2
 =============
