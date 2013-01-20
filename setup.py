@@ -11,9 +11,11 @@ import os
 import setuptools
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(THISDIR)
+
+VERSION = open("version.txt").readline().strip()
 HOMEPAGE = "https://code.google.com/p/cherrypy-cgiserver/"
 DOWNLOAD_BASEURL = "https://cherrypy-cgiserver.googlecode.com/files/"
-VERSION = open(os.path.join(THISDIR, "version.txt")).readline().strip()
 DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
 
@@ -24,7 +26,7 @@ setuptools.setup(
         "Python CGI Server - Perfect To Deliver PHP Files Within A Python "
         "CherryPy Application"
     ),
-    long_description = open(os.path.join(THISDIR, "README.txt")).read(),
+    long_description = open("README.txt").read(),
     keywords = "CherryPy Web CGI Tool",
     author = "Gerold Penz",
     author_email = "gerold@halvar.at",
@@ -45,9 +47,8 @@ setuptools.setup(
         "Programming Language :: Python :: 2",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
-#    install_requires = [
-#        "cherrypy",
-#    ],
-
+    install_requires = [
+        "cherrypy",
+    ],
 )
 
