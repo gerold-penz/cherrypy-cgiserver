@@ -11,8 +11,10 @@ import os
 import setuptools
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
+HOMEPAGE = "https://code.google.com/p/cherrypy-cgiserver/"
 DOWNLOAD_BASEURL = "https://cherrypy-cgiserver.googlecode.com/files/"
 VERSION = open(os.path.join(THISDIR, "version.txt")).readline().strip()
+DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
 
 setuptools.setup(
@@ -23,20 +25,15 @@ setuptools.setup(
         "CherryPy Application"
     ),
     long_description = open(os.path.join(THISDIR, "README.txt")).read(),
-    classifiers = [
-        "Framework :: CherryPy",
-        "Programming Language :: Python",
-    ],
     keywords = "CherryPy Web CGI Tool",
     author = "Gerold Penz",
     author_email = "gerold@halvar.at",
-    url = "https://code.google.com/p/cherrypy-cgiserver/",
-    download_url = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.zip" % VERSION,
-    license = "http://www.gnu.org/licenses/lgpl.html",
-    install_requires = [
-        "cherrypy",
+    url = HOMEPAGE,
+    download_url = DOWNLOAD_URL,
+    packages = [
+        "cpcgiserver",
+        "cpcgiserver.lib",
     ],
-    packages = ["cpcgiserver"],
     classifiers = [
         "Development Status :: 4 - Beta",
         #"Development Status :: 5 - Production/Stable",
@@ -48,6 +45,9 @@ setuptools.setup(
         "Programming Language :: Python :: 2",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
+#    install_requires = [
+#        "cherrypy",
+#    ],
 
 )
 
