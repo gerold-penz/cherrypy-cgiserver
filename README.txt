@@ -4,15 +4,15 @@ CherryPy CGI-Server Tool
 
 Homepage: https://code.google.com/p/cherrypy-cgiserver/
 
-Mit dem Cherrypy Tool cherrypy-cgiserver kann man aus Cherrypy einen
+Mit dem CherryPy Tool *cherrypy-cgiserver* kann man aus CherryPy einen
 vollwertigen CGI-Server (Common Gateway Interface) machen.
 Damit lassen sich sogar PHP-Dateien ausführen und ausliefern.
 Es muss nur der PHP-Interpreter auf dem Computer installiert sein.
 Ein zusätzlicher Apache-Server ist nicht nötig.
 
-So einfach lässt sich aus Cherrypy ein vollwertiger PHP-Server machen:
+So einfach lässt sich aus CherryPy ein vollwertiger PHP-Server machen:
 
-..code:: python
+.. code:: python
 
     #!/usr/bin/env python
     # coding: utf-8

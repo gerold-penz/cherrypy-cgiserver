@@ -3,7 +3,7 @@
 import os
 import subprocess
 
-THISDIR = os.path.dirname(os.path.join(__file__))
+THISDIR = os.path.dirname(os.path.abspath(__file__))
 
 args = ["git", "pull"]
 returncode = subprocess.call(args, cwd = THISDIR)
