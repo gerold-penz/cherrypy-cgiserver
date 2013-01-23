@@ -8,7 +8,7 @@ Created
 """
 
 import os
-import setuptools
+from setuptools import setup, find_packages, findall
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(THISDIR)
@@ -19,7 +19,11 @@ DOWNLOAD_BASEURL = "https://cherrypy-cgiserver.googlecode.com/files/"
 DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
 
-setuptools.setup(
+setup(
+#    install_requires = [
+#        "distribute",
+#        "cherrypy"
+#    ],
     name = "cherrypy-cgiserver",
     version = VERSION,
     description = (
@@ -32,10 +36,10 @@ setuptools.setup(
     author_email = "gerold@halvar.at",
     url = HOMEPAGE,
     download_url = DOWNLOAD_URL,
-    packages = [
-        "cpcgiserver",
-        "cpcgiserver.lib",
-    ],
+    packages = find_packages(),
+#    data_files = [
+#        ["./yyy", ["_git_add.py"]],
+#    ],
     classifiers = [
         "Development Status :: 4 - Beta",
         #"Development Status :: 5 - Production/Stable",
@@ -47,6 +51,5 @@ setuptools.setup(
         "Programming Language :: Python :: 2",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
-    requires = ["cherrypy"],
 )
 

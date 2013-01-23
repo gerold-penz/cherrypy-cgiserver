@@ -22,6 +22,10 @@ import cpcgiserver
 
 def main():
 
+    print
+    print "cherrypy-cgiserver version: %s" % cpcgiserver.__version__
+    print
+
     config = {
         "global": {
             # Server settings

@@ -531,6 +531,20 @@ class CgiServer(cherrypy._cptools.Tool):
 cherrypy.tools.cgiserver = CgiServer()
 
 
+#def get_version_string():
+#    """
+#    Tries to read the version file
+#    """
+#
+#    for file_path in [
+#        os.path.join(THISDIR, "version.txt"),
+#        os.path.join(THISDIR, "..", "version.txt")
+#    ]:
+#        if os.path.isfile(file_path):
+#            with open(file_path) as version_file:
+#                return version_file.readline().strip()
+#
+#__version__ = get_version_string()
 
 
 
