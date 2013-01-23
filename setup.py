@@ -47,8 +47,6 @@ setuptools.setup(
         "Programming Language :: Python :: 2",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
-    install_requires = [
-        "cherrypy",
-    ],
+    requires = ["cherrypy"],
 )
 

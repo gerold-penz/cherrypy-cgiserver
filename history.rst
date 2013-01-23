@@ -3,6 +3,17 @@ CherryPy CGI-Server - History
 #############################
 
 
+=============
+Version 0.2.5
+=============
+
+2013-01-23
+
+- *cherrypy* required for setup
+
+- Added the *examples* directory to archive file
+
+
 ===============
 Version 0.2.4.a
 ===============
