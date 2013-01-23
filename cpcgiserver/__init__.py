@@ -26,7 +26,7 @@ def _determine_script_filename_and_path_info(dir, base_url):
     """
     Hilfsfunktion: Ermittelt *script_filename* und *path_info*
 
-    Info: Greif auf cherrypy.request.path_info zu.
+    Info: Greift auf *cherrypy.request.path_info* zu.
     """
 
     branch = cherrypy.request.path_info[len(base_url) + 1:]
