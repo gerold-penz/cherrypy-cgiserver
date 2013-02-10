@@ -12,6 +12,8 @@ Version 0.2.6
 - Ausprobiert ob GitHub besondere Vorteile für mich gegenüber Google Code
   bietet.
 
+- Dokumentation mit Sphinx erstellt.
+
 
 =============
 Version 0.2.5
