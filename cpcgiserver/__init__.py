@@ -14,6 +14,7 @@ import cherrypy
 import subprocess
 import tempfile
 import httplib
+import urlparse
 import lib.format_
 from cStringIO import StringIO
 from cherrypy.wsgiserver import wsgiserver2
@@ -189,6 +190,25 @@ class CgiServer(cherrypy._cptools.Tool):
         # Interpreter anhand der Dateiendung ermitteln
         handler_executable = handlers[ext]
 
+        # Prüfen ob der Request über HTTPS gekommen ist.
+        # Damit kann Pound http://www.apsis.ch/pound das HTTPS-Handling
+        # übernehmen und unverschlüsselt an den CGI-Handler weitergeben.
+        if "X-Ssl-Cipher" in headers:
+            # request.scheme
+            request.scheme = "https"
+
+            # wsgi.url_scheme
+            request.wsgi_environ["wsgi.url_scheme"] = "https"
+
+            # request.base
+            base_url_split = list(urlparse.urlsplit(request.base))
+            base_url = urlparse.urlunsplit(
+                item for item in ["https"] + base_url_split[1:]
+            )
+            request.base = unicode(base_url)
+
+
+
 
 #        # TEST ---------
 #        cherrypy.serving.response.body = [lib.format_.show_request()]
@@ -350,7 +370,9 @@ class CgiServer(cherrypy._cptools.Tool):
             env["HTTP_ACCEPT_ENCODING"] = headers["accept-encoding"]
         elif hasattr(request, "wsgi_environ"):
             if "HTTP_ACCEPT_ENCODING" in request.wsgi_environ:
-                env["HTTP_ACCEPT_ENCODING"] = request.wsgi_environ["HTTP_ACCEPT_ENCODING"]
+                env["HTTP_ACCEPT_ENCODING"] = request.wsgi_environ[
+                    "HTTP_ACCEPT_ENCODING"
+                ]
 
         # HTTP_ACCEPT_LANGUAGE
         # Enthält, welche Landessprache der aufrufende Browser bei seiner
@@ -476,6 +498,12 @@ class CgiServer(cherrypy._cptools.Tool):
             if "SERVER_SOFTWARE" in request.wsgi_environ:
                 env["SERVER_SOFTWARE"] = request.wsgi_environ["SERVER_SOFTWARE"]
                 env["REDIRECT_STATUS"] = "200"
+
+        # Alle oben noch nicht übernommenen Einträge aus dem Header an die
+        # CGI-Umgebung weiterreichen.
+        for header_key, header_value in headers.items():
+            if header_key.upper() not in env:
+                env[header_key.upper()] = header_value
 
         # call interpreter
         cmd_args = [handler_executable, script_filename]

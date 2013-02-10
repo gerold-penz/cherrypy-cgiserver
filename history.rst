@@ -2,6 +2,22 @@
 CherryPy CGI-Server - History
 #############################
 
+=============
+Version 0.2.7
+=============
+
+2013-02-10
+
+- Workarround für Pound http://www.apsis.ch/pound
+  Falls Pound sich um das HTTPS-Handling kümmert, wird jetzt auch CherryPy
+  in den HTTPS-Modus versetzt. Dem CGI-Handler wird eine HTTPS-Umgebung
+  vorgetäuscht, damit dieses die Vorkehrungen für die Antwort auf einen
+  HTTPS-Request durchführen kann.
+
+- Alle noch nicht übernommenen Einträge aus dem Header werden an die
+  CGI-Umgebung weitergereicht. Somit werden auch die zusätzlichen X-HTTPS-Header
+  von Pound an den CGI-Handler weitergereicht.
+
 
 =============
 Version 0.2.6
@@ -12,7 +28,7 @@ Version 0.2.6
 - Ausprobiert ob GitHub besondere Vorteile für mich gegenüber Google Code
   bietet.
 
-- Dokumentation mit Sphinx erstellt.
+- Created documentation with Sphinx
 
 
 =============
