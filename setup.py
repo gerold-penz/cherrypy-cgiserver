@@ -30,7 +30,7 @@ setup(
         "Python CGI Server - Perfect To Deliver PHP Files Within A Python "
         "CherryPy Application"
     ),
-    long_description = open("README.txt").read(),
+    long_description = open("README.rst").read(),
     keywords = "CherryPy Web CGI Tool",
     author = "Gerold Penz",
     author_email = "gerold@halvar.at",
