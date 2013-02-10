@@ -11,7 +11,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 APPDIR = os.path.abspath(os.path.join(THISDIR, ".."))
@@ -219,8 +219,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'cherrypy-cgiserver', u'cherrypy-cgiserver Documentation',
-     [u'Gerold Penz'], 1)
+    ('index', 'cherrypy-cgiserver', u'cherrypy-cgiserver', [u'Gerold Penz'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -233,7 +232,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'cherrypy-cgiserver', u'cherrypy-cgiserver Documentation',
+  ('index', 'cherrypy-cgiserver', u'cherrypy-cgiserver',
    u'Gerold Penz', 'cherrypy-cgiserver', 'One line description of project.',
    'Miscellaneous'),
 ]
