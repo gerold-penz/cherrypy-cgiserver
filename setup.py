@@ -8,13 +8,13 @@ Created
 """
 
 import os
-from setuptools import setup, find_packages, findall
+from setuptools import setup, find_packages
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(THISDIR)
 
 VERSION = open("version.txt").readline().strip()
-HOMEPAGE = "https://code.google.com/p/cherrypy-cgiserver/"
+HOMEPAGE = "https://github.com/gerold-penz/cherrypy-cgiserver/wiki"
 DOWNLOAD_BASEURL = "https://cherrypy-cgiserver.googlecode.com/files/"
 DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
