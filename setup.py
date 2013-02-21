@@ -20,10 +20,6 @@ DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
 
 setup(
-#    install_requires = [
-#        "distribute",
-#        "cherrypy"
-#    ],
     name = "cherrypy-cgiserver",
     version = VERSION,
     description = (
@@ -51,5 +47,9 @@ setup(
         "Programming Language :: Python :: 2",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
+#    install_requires = [
+#        "distribute",
+#        "cherrypy"
+#    ],
 )
 
