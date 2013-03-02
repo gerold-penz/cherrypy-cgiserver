@@ -499,6 +499,10 @@ class CgiServer(cherrypy._cptools.Tool):
                 env["SERVER_SOFTWARE"] = request.wsgi_environ["SERVER_SOFTWARE"]
                 env["REDIRECT_STATUS"] = "200"
 
+        # HTTPS
+        if request.scheme == "https":
+            env["HTTPS"] = "on"
+        
         # Alle oben noch nicht übernommenen Einträge aus dem Header an die
         # CGI-Umgebung weiterreichen.
         for header_key, header_value in headers.items():
