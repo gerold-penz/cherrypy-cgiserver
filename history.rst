@@ -4,6 +4,15 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.3.1
+=============
+
+2013-03-30
+
+- Timeout thread terminates CGI process if timeout occures
+
+
+=============
 Version 0.2.9
 =============
 

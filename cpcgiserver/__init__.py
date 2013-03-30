@@ -7,11 +7,14 @@ Created
     2013-01-05 by Gerold - http://halvar.at/
 Requirements
     - CherryPy: http://cherrypy.org/
+Licenses
+    - http://gerold-penz.github.com/cherrypy-cgiserver/#lizenzen
 """
 
 import os
 import cherrypy
 import subprocess
+import threading
 import tempfile
 import httplib
 import urlparse
@@ -77,7 +80,8 @@ class CgiServer(cherrypy._cptools.Tool):
         handlers = None,
         server_admin = None,
         response_file_max_size_in_memory = 16000000,
-        directory_index = None
+        directory_index = None,
+        timeout_seconds = 25
     ):
         """
         Adds an embedded CGI server to CherryPy
@@ -122,6 +126,12 @@ class CgiServer(cherrypy._cptools.Tool):
             mit einer oder mehreren durch Leerzeichen getrennten Dateien
             übergeben werden. Auch eine Liste mit Dateinamen ist möglich.
             Siehe: http://httpd.apache.org/docs/2.2/mod/mod_dir.html#directoryindex
+
+        :param timeout_seconds: Gibt in Sekunden an, wie lange auf eine
+            Rückmeldung des CGI-Prozesses gewartet werden soll. Ist die Zeit
+            abgelaufen, wird der CGI-Prozess terminiert und der HTTP-Fehler
+            504-GATEWAY_TIMEOUT zurück geliefert. Der Standard ist 25 Sekunden.
+            Das ist etwas weniger als der Standard-Timeout von PHP-CGI.
         """
 
         # short names for request and headers
@@ -179,7 +189,7 @@ class CgiServer(cherrypy._cptools.Tool):
         # filename is a child of dir.
         # (copied from *cherrypy.lib.static*)
         if not os.path.normpath(script_filename).startswith(os.path.normpath(dir)):
-            raise cherrypy.HTTPError(403) # Forbidden
+            raise cherrypy.HTTPError(httplib.FORBIDDEN)
 
         # Wenn Dateiendung unbekannt, dann Funktion beenden, damit ein
         # evt. eingestelltes Staticdir-Tool die Datei ausliefern kann
@@ -509,28 +519,53 @@ class CgiServer(cherrypy._cptools.Tool):
             if header_key.upper() not in env:
                 env[header_key.upper()] = header_value
 
+        # Get response (header and body lines) into spooled temporary file
+        response = tempfile.SpooledTemporaryFile(
+            max_size = response_file_max_size_in_memory,
+            mode = "w+b"
+        )
+
         # call interpreter
         cmd_args = [handler_executable, script_filename]
         proc = subprocess.Popen(
             cmd_args,
             executable = handler_executable,
             stdin = subprocess.PIPE,
-            stdout = subprocess.PIPE,
+            stdout = response,
             stderr = subprocess.STDOUT,
             cwd = dir,
             env = env
         )
+        proc.force_terminated = False
         proc.stdin.write(body_file.read())
 
-        # Get response (header and body lines) into spooled temporary file
-        response = tempfile.SpooledTemporaryFile(
-            max_size = response_file_max_size_in_memory,
-            mode = "w+b"
-        )
-        response.write(proc.stdout.read())
-        response.seek(0)
+
+        def terminate_cgi_process():
+            """
+            Terminiert nach einem Timeout den CGI-Prozess
+            """
+
+            proc.terminate()
+            proc.force_terminated = True
+
+
+        # Timeout-Timer starten, der nach Ablauf den CGI-Prozess terminiert
+        timer = threading.Timer(timeout_seconds, terminate_cgi_process)
+        timer.start()
+
+        # Los geht's (hier wird gewartet bis das CGI-Programm fertig ist)
+        proc.communicate()
+
+        # Timeout-Timer abbrechen, da er hier nicht mehr benötigt wird
+        timer.cancel()
+
+        # Falls der Timeout-Timer den CGI-Prozess abbrechen musste, wird der
+        # GATEWAY_TIMEOUT-Fehler ausgelöst.
+        if proc.force_terminated:
+            raise cherrypy.HTTPError(httplib.GATEWAY_TIMEOUT)
 
         # Get header lines
+        response.seek(0)
         try:
             cherrypy.serving.response.headers = wsgiserver2.read_headers(
                 response, cherrypy.serving.response.headers

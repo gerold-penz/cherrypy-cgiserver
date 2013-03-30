@@ -42,9 +42,30 @@ So einfach lässt sich aus CherryPy ein vollwertiger PHP-Server machen:
     if __name__ == "__main__":
         main()
 
-Quellcode: https://github.com/gerold-penz/cherrypy-cgiserver
+
+=====
+Links
+=====
+
+- Quellcode: https://github.com/gerold-penz/cherrypy-cgiserver
 
 
+========
+Lizenzen
+========
+
+Jeder (ohne Ausnahme) darf diesen Code verwenden. Dafür habe ich den Code unter
+zwei Lizenzen gestellt -- frei wählbar.
+
+**LGPL:**
+
+- http://www.gnu.org/licenses/lgpl.html (english)
+- http://www.gnu.de/documents/lgpl.de.html (deutsch)
+
+**MIT:**
+
+- http://opensource.org/licenses/MIT (english)
+- http://de.wikipedia.org/wiki/MIT-Lizenz (deutsch)
 
 
 ======
