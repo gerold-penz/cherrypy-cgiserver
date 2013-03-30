@@ -46,7 +46,6 @@ Installation::
   oder
   easy_install cherrypy-cgiserver
 
-Documentation: https://cherrypy-cgiserver.googlecode.com/git/documentation/_build/html/index.html
-
-Sourcecode: http://code.google.com/p/cherrypy-cgiserver/source/browse/
+- Homepage: https://github.com/gerold-penz/cherrypy-cgiserver/wiki
+- Sourcecode: https://github.com/gerold-penz/cherrypy-cgiserver
 
