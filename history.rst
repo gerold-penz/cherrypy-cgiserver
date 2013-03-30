@@ -11,6 +11,8 @@ Version 0.2.8
 
 - The repository is now hosted by GitHub. I changed from GoogleCode to GitHub.
 
+- New documentation structure
+
 
 =============
 Version 0.2.7
