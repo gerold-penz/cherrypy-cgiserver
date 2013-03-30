@@ -14,7 +14,7 @@ THISDIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(THISDIR)
 
 VERSION = open("version.txt").readline().strip()
-HOMEPAGE = "https://github.com/gerold-penz/cherrypy-cgiserver/wiki"
+HOMEPAGE = "http://gerold-penz.github.com/cherrypy-cgiserver/"
 DOWNLOAD_BASEURL = "https://cherrypy-cgiserver.googlecode.com/files/"
 DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
@@ -47,9 +47,9 @@ setup(
         "Programming Language :: Python :: 2",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
-#    install_requires = [
+    install_requires = [
 #        "distribute",
-#        "cherrypy"
-#    ],
+        "cherrypy",
+    ],
 )
 

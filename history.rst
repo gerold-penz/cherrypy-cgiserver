@@ -3,6 +3,15 @@ CherryPy CGI-Server - History
 #############################
 
 =============
+Version 0.2.8
+=============
+
+2013-03-30
+
+- The repository is now hosted by GitHub. I changed from GoogleCode to GitHub.
+
+
+=============
 Version 0.2.7
 =============
 
