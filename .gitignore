@@ -17,3 +17,7 @@
 .DS_Store
 dist
 *.egg-info
+*.aof
+*.sock
+*.rdb
+log
