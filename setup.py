@@ -8,30 +8,14 @@ Created
 """
 
 import os
-import sys
-import distutils.core
 from setuptools import setup, find_packages
-
-# Upload zu Google-Code
-# http://code.google.com/p/support/source/browse/#svn%2Ftrunk%2Fscripts
-try:
-    from googlecode_upload.googlecode_distutils_upload import upload
-except ImportError:
-    class upload(distutils.core.Command):
-        user_options = []
-        def __init__(self, *args, **kwargs):
-            sys.stderr.write(
-                "error: Install this module in site-packages to upload: \n"
-                "http://support.googlecode.com/svn/trunk/scripts/googlecode_distutils_upload.py"
-            )
-            sys.exit(3)
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(THISDIR)
 
 VERSION = open("version.txt").readline().strip()
 HOMEPAGE = "http://gerold-penz.github.com/cherrypy-cgiserver/"
-DOWNLOAD_BASEURL = "https://cherrypy-cgiserver.googlecode.com/files/"
+DOWNLOAD_BASEURL = "https://github.com/gerold-penz/cherrypy-cgiserver/raw/master/dist/"
 DOWNLOAD_URL = DOWNLOAD_BASEURL + "cherrypy-cgiserver-%s.tar.gz" % VERSION
 
 
@@ -73,6 +57,5 @@ setup(
 #        "distribute",
         "cherrypy",
     ],
-    cmdclass = {"upload": upload},
 )
 

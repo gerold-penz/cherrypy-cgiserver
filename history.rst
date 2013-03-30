@@ -4,6 +4,15 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.3.2
+=============
+
+2013-03-30
+
+- File-uploads changed from GoogleCode to GitHub.
+
+
+=============
 Version 0.3.1
 =============
 
