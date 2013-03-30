@@ -42,7 +42,7 @@ So einfach lässt sich aus CherryPy ein vollwertiger PHP-Server machen:
     if __name__ == "__main__":
         main()
 
-Quellcode: http://code.google.com/p/cherrypy-cgiserver/source/browse/
+Quellcode: https://github.com/gerold-penz/cherrypy-cgiserver
 
 **Inhalt**
 
