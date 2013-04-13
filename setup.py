@@ -33,11 +33,10 @@ setup(
     url = HOMEPAGE,
     download_url = DOWNLOAD_URL,
     packages = find_packages(),
-#    data_files = [
-#        ["./yyy", ["_git_add.py"]],
-#    ],
+    # data_files = [
+    #     ["./yyy", ["_git_add.py"]],
+    # ],
     classifiers = [
-        # "Development Status :: 4 - Beta",
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
         "Framework :: CherryPy",
@@ -54,8 +53,8 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Server",
     ],
     install_requires = [
-#        "distribute",
-        "cherrypy",
+        # "distribute",
+        # "cherrypy",
     ],
 )
 
