@@ -215,7 +215,7 @@ class CgiServer(cherrypy._cptools.Tool):
             base_url = urlparse.urlunsplit(
                 item for item in ["https"] + base_url_split[1:]
             )
-            request.base = unicode(base_url)
+            request.base = str(base_url)
 
 
 

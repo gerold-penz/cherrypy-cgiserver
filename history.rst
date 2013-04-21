@@ -4,6 +4,15 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.3.4
+=============
+
+2013-04-21
+
+- In case of a https-request, `request.base` returns bytestring not unicode.
+
+
+=============
 Version 0.3.3
 =============
 
