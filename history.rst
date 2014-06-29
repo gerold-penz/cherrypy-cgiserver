@@ -4,6 +4,15 @@ CherryPy CGI-Server - History
 
 
 =============
+Version 0.3.5
+=============
+
+2014-06-29
+
+- Location of the setup file is now PyPi.
+
+
+=============
 Version 0.3.4
 =============
 

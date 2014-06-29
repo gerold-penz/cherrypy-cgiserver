@@ -45,9 +45,9 @@ So einfach lässt sich aus CherryPy ein vollwertiger PHP-Server machen:
 Installation
 ============
 
-  pip install cherrypy-cgiserver
-  oder
-  easy_install cherrypy-cgiserver
+  `pip install cherrypy-cgiserver`
+  or
+  `easy_install cherrypy-cgiserver`
 
 
 =====

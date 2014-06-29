@@ -33,9 +33,6 @@ setup(
     url = HOMEPAGE,
     download_url = DOWNLOAD_URL,
     packages = find_packages(),
-    # data_files = [
-    #     ["./yyy", ["_git_add.py"]],
-    # ],
     classifiers = [
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
