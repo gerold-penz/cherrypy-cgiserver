@@ -3,14 +3,13 @@ CherryPy CGI-Server - History
 #############################
 
 
-
 =============
 Version 0.3.6
 =============
 
 2016-08-25
 
-- Fixed: New CherryPy has now wsgiserver2-module
+- Fixed: New CherryPy has no wsgiserver2-module
 
 
 =============
