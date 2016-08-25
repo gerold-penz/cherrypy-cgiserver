@@ -20,7 +20,10 @@ import httplib
 import urlparse
 import lib.format_
 from cStringIO import StringIO
-from cherrypy.wsgiserver import wsgiserver2
+try:
+    from cherrypy.wsgiserver import wsgiserver2 as wsgiserver
+except ImportError:
+    from cherrypy import wsgiserver
 from cherrypy._cpcompat import unquote
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
@@ -567,7 +570,7 @@ class CgiServer(cherrypy._cptools.Tool):
         # Get header lines
         response.seek(0)
         try:
-            cherrypy.serving.response.headers = wsgiserver2.read_headers(
+            cherrypy.serving.response.headers = wsgiserver.read_headers(
                 response, cherrypy.serving.response.headers
             )
         except ValueError:
